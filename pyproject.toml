@@ -1,0 +1,20 @@
+[project]
+name = "implicit-ad-agent"
+version = "0.1.0"
+description = "融合多模态行为特征与文本推断的隐性广告识别 · LangGraph 多智能体起步骨架"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=0.2",
+    "langchain>=0.3",
+    "langchain-core>=0.3",
+    "langchain-openai>=0.2",
+    "langsmith>=0.1",
+    "python-dotenv>=1.0",
+    "pydantic>=2.6",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+]
+
+# 让 `pytest` 能从项目根目录 import impad 包
+[tool.pytest.ini_options]
+pythonpath = ["."]

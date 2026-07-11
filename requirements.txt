@@ -1,0 +1,18 @@
+# ---- 起步核心（装完这些就能跑通 hello_graph 与 LLM 图）----
+langgraph>=0.2
+langchain>=0.3
+langchain-core>=0.3
+langchain-openai>=0.2      # OpenAI 兼容端点：DeepSeek / 通义千问 / OpenAI 都走它
+langsmith>=0.1             # 轨迹追踪
+python-dotenv>=1.0
+pydantic>=2.6
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pytest>=8.0                # 冒烟测试
+
+# ---- 后续阶段按需再装（先留注释，避免首次安装过重）----
+# chromadb>=0.5            # 向量库：情景记忆 / RAG 法规库
+# bertopic>=0.16          # 主题建模 / 主题漂移
+# paddleocr               # 图像 OCR
+# scikit-learn            # 评估指标 / 标注一致性(κ)
+# streamlit               # 演示前端

@@ -1,0 +1,20 @@
+# 密钥与本地环境（绝不上传）
+.env
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 向量库 / 缓存 / 数据
+.chroma/
+chroma/
+*.sqlite3
+data/raw/
+.langgraph_api/
+
+# 编辑器
+.idea/
+.vscode/
