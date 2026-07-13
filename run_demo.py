@@ -15,16 +15,24 @@ if hasattr(sys.stdout, "reconfigure"):
 
 
 def main():
-    use_llm = "--llm" in sys.argv
+    use_llm = True
     samples_path = pathlib.Path(__file__).parent / "samples" / "sample_posts.json"
     samples = json.loads(samples_path.read_text(encoding="utf-8"))
 
     if use_llm:
+        try:
+            from impad.llm import get_llm
+            llm = get_llm()
+            llm.invoke([{"role": "system", "content": "测试 LLM 是否可用"}])
+        except Exception as e:
+            print(">> LLM 图（graph.py）不可用，改用零成本占位图（hello_graph.py）\n")
+            print("   错误信息：", e, "\n")
+            use_llm = False
+            from impad.hello_graph import graph
+            print(">> 使用零成本占位图（hello_graph.py）\n")
         from impad.graph import graph
         print(">> 使用 LLM 图（graph.py）——请确认 .env 已配置好\n")
-    else:
-        from impad.hello_graph import graph
-        print(">> 使用零成本占位图（hello_graph.py）\n")
+        
 
     for i, post in enumerate(samples, 1):
         print(f"===== 样本 {i}：{post.get('blogger', '')} =====")

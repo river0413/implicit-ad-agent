@@ -1,4 +1,5 @@
-"""厂商无关的 LLM 客户端：走 OpenAI 兼容端点。
+"""
+厂商无关的 LLM 客户端：走 OpenAI 兼容端点。
 
 改 .env 里的 OPENAI_BASE_URL / LLM_MODEL 就能在 DeepSeek / 通义千问 / OpenAI 间切换，
 代码不用动。
