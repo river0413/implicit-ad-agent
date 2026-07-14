@@ -24,14 +24,13 @@ def main():
             from impad.llm import get_llm
             llm = get_llm()
             llm.invoke([{"role": "system", "content": "测试 LLM 是否可用"}])
+            from impad.graph import graph
+            print(">> 使用 LLM 图（graph.py）\n")
         except Exception as e:
-            print(">> LLM 图（graph.py）不可用，改用零成本占位图（hello_graph.py）\n")
-            print("   错误信息：", e, "\n")
-            use_llm = False
+            print(f">> LLM 图不可用，改用零成本占位图：{e}\n")
             from impad.hello_graph import graph
             print(">> 使用零成本占位图（hello_graph.py）\n")
-        from impad.graph import graph
-        print(">> 使用 LLM 图（graph.py）——请确认 .env 已配置好\n")
+        
         
 
     for i, post in enumerate(samples, 1):

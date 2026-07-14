@@ -18,3 +18,13 @@ data/raw/
 # 编辑器
 .idea/
 .vscode/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Jupyter
+*.ipynb_checkpoints/
+
+# 日志
+*.log

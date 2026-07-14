@@ -11,8 +11,8 @@ uvicorn[standard]>=0.27
 pytest>=8.0                # 冒烟测试
 
 # ---- 后续阶段按需再装（先留注释，避免首次安装过重）----
-# chromadb>=0.5            # 向量库：情景记忆 / RAG 法规库
-# bertopic>=0.16          # 主题建模 / 主题漂移
-# ultralytics             # 图像 OCR
-# scikit-learn            # 评估指标 / 标注一致性(κ)
-# streamlit               # 演示前端
+chromadb>=0.5            # 向量库：情景记忆 / RAG 法规库
+bertopic>=0.16          # 主题建模 / 主题漂移
+ultralytics             # 图像 OCR
+scikit-learn            # 评估指标 / 标注一致性(κ)
+streamlit               # 演示前端
