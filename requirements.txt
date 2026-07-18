@@ -10,6 +10,11 @@ fastapi>=0.110
 uvicorn[standard]>=0.27
 pytest>=8.0                # 冒烟测试
 
+# ---- 爬虫 / 数据采集 ----
+requests>=2.31
+beautifulsoup4>=4.12
+playwright>=1.45            # 浏览器渲染（Sogou 回退 + 微信文章渲染）
+
 # ---- 后续阶段按需再装（先留注释，避免首次安装过重）----
 chromadb>=0.5            # 向量库：情景记忆 / RAG 法规库
 bertopic>=0.16          # 主题建模 / 主题漂移
