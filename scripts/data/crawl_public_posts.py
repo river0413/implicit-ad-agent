@@ -5,7 +5,7 @@ import json
 import os
 import re
 import sys
-import urllib.request
+import requests
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -65,10 +65,9 @@ def platform_from_url(url: str) -> str:
 
 
 def fetch_url(url: str) -> str:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request, timeout=30) as response:
-        raw = response.read()
-    return raw.decode("utf-8", errors="ignore")
+    resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
+    resp.raise_for_status()
+    return resp.text
 
 
 def build_post_record(
