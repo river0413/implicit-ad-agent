@@ -2,7 +2,8 @@
 .env
 .venv/
 venv/
-
+/文献/
+/资料/
 # Python
 __pycache__/
 *.pyc
