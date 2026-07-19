@@ -103,14 +103,7 @@ def crawl_sogou_wechat(account_name: str, max_articles: int = 50, max_pages: int
                     new_page.close()
                     
                     if "mp.weixin.qq.com" in final_url:
-                        # Clean: remove tracking params but preserve signature
-                        import urllib.parse as _up
-                        parsed = _up.urlparse(final_url)
-                        qs = _up.parse_qs(parsed.query)
-                        # Keep only 'signature' param
-                        keep = {k: v[0] for k, v in qs.items() if k == 'signature'}
-                        clean = _up.urlunparse(parsed._replace(query=_up.urlencode(keep)))
-                        results.append({"title": entry["title"], "url": clean, "publisher": entry["publisher"]})
+                        results.append({"title": entry["title"], "url": final_url, "publisher": entry["publisher"]})
                         print(f"  [{len(results)}] {entry['title'][:50]}")
                     else:
                         print(f"  [skip] no redirect")

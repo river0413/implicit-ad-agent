@@ -10,6 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
+load_dotenv()
+
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 
 
@@ -64,7 +67,34 @@ def platform_from_url(url: str) -> str:
     return "web_public"
 
 
+def _fetch_via_playwright(url: str, timeout: int = 30000) -> str:
+    """使用 Playwright 浏览器渲染抓取页面（用于需要 JS 渲染的站点如微信）。"""
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent=USER_AGENT,
+            viewport={"width": 1280, "height": 900},
+            locale="zh-CN",
+        )
+        page = context.new_page()
+        # 搜狗反盗链：需要带 weixin.sogou.com 的 Referer
+        extra_headers = {}
+        if "src=11" in url or "timestamp=" in url:
+            extra_headers["Referer"] = "https://weixin.sogou.com"
+        page.set_extra_http_headers(extra_headers)
+        page.goto(url, wait_until="networkidle", timeout=timeout)
+        content = page.content()
+        browser.close()
+        return content
+
+
 def fetch_url(url: str) -> str:
+    # 微信文章需要浏览器渲染，直接用 requests 只会拿到错误页
+    if "mp.weixin.qq.com" in url:
+        return _fetch_via_playwright(url)
+
     resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=30)
     resp.raise_for_status()
     return resp.text
