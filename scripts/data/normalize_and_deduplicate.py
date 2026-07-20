@@ -15,12 +15,12 @@ def normalize_text(text: str) -> str:
 
 
 def record_fingerprint(record: Dict) -> str:
-    """计算记录指纹用于去重（基于 title + text + media refs）。"""
+    """计算记录指纹用于去重（基于 title + text + media source_urls）。"""
     normalized = {
         "title": normalize_text(record.get("title") or ""),
         "text": normalize_text(record.get("text", "")),
-        "media_refs": sorted([
-            m.get("source_url", "") for m in record.get("media", []) if m
+        "media_urls": sorted([
+            m.get("source_url", "") for m in record.get("media", []) if isinstance(m, dict)
         ]),
         "platform": record.get("platform"),
     }

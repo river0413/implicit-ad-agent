@@ -15,6 +15,7 @@ Run the full data collection pipeline end-to-end.
      - mode=article: crawl_wechat_from_article.py（含 Playwright + Sogou 回退）
      - mode=sogou:   sogou_wechat_crawler.py（直接 Sogou 检索）
   2) 抓取内容并匿名化 → crawl_public_posts.py
+     （自动传入 --history-urls，使每条记录携带同博主其他文章的 post_id 列表）
   3) 文本规范化 + 去重   → normalize_and_deduplicate.py
   4) Schema 校验          → validate_schema.py
 """
@@ -71,6 +72,8 @@ def main():
     parser.add_argument("--accounts-file", default=None,
                         help="批量模式：txt 文件路径，每行一个公众号名称（仅 sogou 模式支持）")
     parser.add_argument("--output-dir", default="data/run_outputs", help="输出目录")
+    parser.add_argument("--media-dir", default="data/media", help="图片下载目录")
+    parser.add_argument("--no-images", action="store_true", help="跳过图片下载（快速模式）")
     parser.add_argument("--collector", default="D", help="采集者标识 (传递给 anonymizer)")
     parser.add_argument("--max-articles", type=int, default=50, help="Sogou 模式每个公众号最大文章数")
     parser.add_argument("--terms-checked-at", default=None, help="合规条款检查日期 (YYYY-MM-DD)")
@@ -148,14 +151,18 @@ def main():
         ]
         run(cmd)
 
-    # ── Step 2: 抓取内容 + 匿名化 ──
+    # ── Step 2: 抓取内容 + 匿名化（传入全部 URL 列表作为博主历史）──
     anonymized = outdir / "anonymized_posts.jsonl"
     cmd = [
         python, "scripts/data/crawl_public_posts.py",
         "--input", str(urls_file),
         "--output", str(anonymized),
+        "--history-urls", str(urls_file),     # ← 全部 URL 作为博主历史
+        "--media-dir", str(args.media_dir),
         "--collector", args.collector,
     ]
+    if args.no_images:
+        cmd.append("--no-images")
     if args.terms_checked_at:
         cmd.extend(["--terms-checked-at", args.terms_checked_at])
     run(cmd)
@@ -179,6 +186,7 @@ def main():
     print(f"  URL 列表:     {urls_file}")
     print(f"  匿名化数据:   {anonymized}")
     print(f"  去重后数据:   {deduped}")
+    print(f"  图片目录:     {args.media_dir}")
     print(f"  临时文件:     {tmp}")
 
 

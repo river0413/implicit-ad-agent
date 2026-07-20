@@ -194,13 +194,9 @@ def download_images(
             resp.raise_for_status()
             filepath.write_bytes(resp.content)
 
-            # 计算 SHA-256
-            sha256 = hashlib.sha256(resp.content).hexdigest()
-
             media_records.append({
                 "ref": str(filepath.relative_to(media_base_dir.parent)).replace("\\", "/"),
                 "source_url": img_url,
-                "sha256": sha256,
             })
         except Exception as exc:
             print(f"  [img-err] {img_url[:80]}... → {exc}", file=sys.stderr)
@@ -208,7 +204,6 @@ def download_images(
             media_records.append({
                 "ref": None,
                 "source_url": img_url,
-                "sha256": None,
             })
 
     return media_records
@@ -295,6 +290,7 @@ def build_post_record(
     body_text: str,
     media_records: List[Dict],
     published_at: Optional[str],
+    history_post_ids: Optional[List[str]],
     salt: str,
     collector: str,
     terms_checked_at: Optional[str],
@@ -303,6 +299,9 @@ def build_post_record(
 
     返回的 JSON 对象按逻辑分组排列，字段顺序即为人工阅读顺序：
       标识 → 时间 → 内容 → 媒体 → 评论 → 历史 → 元数据
+
+    blogger_history_refs 为 post_id 字符串列表（从博主搜索结果的
+    其他文章 URL 派生），仅包含发布于当前帖之前的文章。
     """
     import collections
 
@@ -328,8 +327,8 @@ def build_post_record(
     record["media"] = media_records
     # ── 评论 ──
     record["comments"] = []
-    # ── 博主历史 ──
-    record["blogger_history_refs"] = []
+    # ── 博主历史（post_id 字符串列表）──
+    record["blogger_history_refs"] = history_post_ids or []
     # ── 采集元数据 ──
     record["_collected"] = {
         "source_url": url,
@@ -370,6 +369,7 @@ def main() -> int:
     parser.add_argument("--media-dir", default="data/media", help="Directory to store downloaded images")
     parser.add_argument("--no-images", action="store_true", help="Skip image downloading (media will be [])")
     parser.add_argument("--compact", action="store_true", help="Output compact single-line JSON instead of pretty-printed")
+    parser.add_argument("--history-urls", default=None, help="File with all article URLs from the same blogger search (for blogger_history_refs)")
     parser.add_argument("--collector", default="D", help="Collector identifier")
     parser.add_argument("--terms-checked-at", default=None, help="Terms check date (YYYY-MM-DD)")
     args = parser.parse_args()
@@ -381,6 +381,14 @@ def main() -> int:
     urls = load_urls(input_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     media_base_dir.mkdir(parents=True, exist_ok=True)
+
+    # 加载博主全部历史 URL 列表 → 预计算所有 post_id
+    all_history_urls: List[str] = []
+    if args.history_urls:
+        history_path = Path(args.history_urls)
+        if history_path.exists():
+            all_history_urls = [line.strip() for line in history_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+            print(f"Loaded {len(all_history_urls)} history URLs from {args.history_urls}")
 
     session = requests.Session()
     indent = None if args.compact else 2
@@ -418,9 +426,16 @@ def main() -> int:
                 # post_id 需要先生成用于目录命名
                 post_id = stable_hash(url, salt, length=24)
                 media_records = download_images(image_urls, post_id, media_base_dir, session)
-                print(f"  images: {len([m for m in media_records if m['sha256']])} downloaded")
+                print(f"  images: {len(media_records)} processed")
 
-            # 5. 构建记录
+            # 5. 博主历史：从全部搜索结果 URL 中排除当前帖，其余作为 history
+            history_post_ids = [
+                stable_hash(h_url, salt, length=24)
+                for h_url in all_history_urls
+                if h_url != url
+            ]
+
+            # 6. 构建记录
             record = build_post_record(
                 url=url,
                 publisher_name=publisher_name,
@@ -429,19 +444,20 @@ def main() -> int:
                 body_text=body_text,
                 media_records=media_records,
                 published_at=published_at,
+                history_post_ids=history_post_ids,
                 salt=salt,
                 collector=args.collector,
                 terms_checked_at=args.terms_checked_at,
             )
 
-            # 6. 输出（每条记录之间用空行分隔，方便阅读）
+            # 7. 输出（每条记录之间用空行分隔，方便阅读）
             with output_path.open("a", encoding="utf-8") as stream:
                 if records_written > 0:
                     stream.write("\n")  # 记录间空行
                 json.dump(record, stream, ensure_ascii=False, indent=indent)
                 stream.write("\n")
             records_written += 1
-            print(f"  ✓ saved")
+            print(f"  ✓ saved (history: {len(history_post_ids)} refs)")
 
         except Exception as exc:
             print(f"  ✗ failed: {exc}", file=sys.stderr)
