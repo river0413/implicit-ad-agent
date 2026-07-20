@@ -4,7 +4,9 @@
 新版 schema（v2，精简后）：
   必填：post_id, platform, blogger_id, title, text, media, comments, blogger_history_refs
   可选：published_at (null 表示未知)
+  media[] 可选：caption (LLM 提取的图片标注), is_content (是否为内容图)
   元数据：_collected (source_url, collected_at, collector)
+  _collected 可选：llm_verified, llm_needs_review, llm_confidence, llm_review_reason
 """
 import json
 from pathlib import Path

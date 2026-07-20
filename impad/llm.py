@@ -9,10 +9,11 @@ from langchain_openai import ChatOpenAI
 from .config import settings
 
 
-def get_llm(temperature: float = 0.0) -> ChatOpenAI:
+def get_llm(temperature: float = 0.0, max_tokens: int = 4096) -> ChatOpenAI:
     return ChatOpenAI(
         model=settings.llm_model,
         api_key=settings.openai_api_key,
         base_url=settings.openai_base_url,
         temperature=temperature,
+        max_tokens=max_tokens,
     )
