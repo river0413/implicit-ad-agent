@@ -7,9 +7,7 @@
 from __future__ import annotations
 from langgraph.graph import StateGraph, START, END
 from .state import AdCheckState
-
-# 常见"软广"信号词，仅用于占位演示（真实项目由智能体 + 工具判断）
-SOFT_AD_SIGNALS = ["亲测", "无限回购", "谁用谁知道", "求同款", "码住", "链接在评论", "评论区", "被问爆"]
+from .tools.keywords import SOFT_AD_SIGNALS, compute_keyword_weights, summarize_weights
 
 
 def ingest(state: AdCheckState) -> AdCheckState:
@@ -19,6 +17,7 @@ def ingest(state: AdCheckState) -> AdCheckState:
 
 def classify(state: AdCheckState) -> AdCheckState:
     text = state.get("post", {}).get("text", "")
+    weights = compute_keyword_weights(text)
     hits = [w for w in SOFT_AD_SIGNALS if w in text]
     if hits:
         verdict, conf = "暗广", min(0.5 + 0.1 * len(hits), 0.95)
@@ -26,8 +25,9 @@ def classify(state: AdCheckState) -> AdCheckState:
     else:
         verdict, conf = "非广", 0.6
         note = "未命中明显软广信号词"
-    return {"verdict": verdict, "confidence": conf,
-            "evidence": state.get("evidence", []) + [note]}
+    notes = [note, f"关键词权重 → {summarize_weights(weights)}"]
+    return {"verdict": verdict, "confidence": conf, "keyword_weights": weights,
+            "evidence": state.get("evidence", []) + notes}
 
 
 def report(state: AdCheckState) -> AdCheckState:
@@ -52,6 +52,9 @@ graph = build_graph()
 
 
 if __name__ == "__main__":
+    import sys
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     sample = {"post": {
         "text": "这支面霜我亲测三个月，无限回购，链接在评论区，姐妹们码住！",
         "blogger": "小美的日常"}}

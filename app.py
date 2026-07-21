@@ -19,7 +19,9 @@ class PostIn(BaseModel):
     text: str
     blogger: str = "未知"
     image_url: str | None = None
+    image_path: str | None = None  # 本地图片路径，供视觉专家做 OCR/物体/焦点分析
     comments: list[str] = []
+    history: list[str] = []  # 该博主的历史帖正文，供行为专家判断人设偏移
 
 
 @app.get("/health")
@@ -33,6 +35,9 @@ def analyze(post: PostIn):
     return {
         "verdict": result.get("verdict"),
         "confidence": result.get("confidence"),
+        "keyword_weights": result.get("keyword_weights"),
+        "vision_findings": result.get("vision_findings"),
+        "agent_votes": result.get("agent_votes"),
         "evidence": result.get("evidence"),
         "report": result.get("report"),
     }

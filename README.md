@@ -6,23 +6,12 @@
 ```
 START → Supervisor（按输入排专家队列：纯文本跳过视觉、无历史跳过行为）
           → NLP 专家（LLM；未配 Key 自动降级为规则，零成本可跑）
-          → 视觉专家（占位，P2 接 OCR/图文一致性）
+          → 视觉专家（YOLO11 物体检测 + OCR 抠图内文字回灌关键词 + 加权焦点；未装依赖自动降级）
           → 行为专家（占位规则，P3 接 EMA+Chroma 记忆）
         → Judge（按专家可靠度加权聚合 + 低置信反思质询） → END
 ```
 
-## 项目双线
-
-| 线 | 目标 | 阶段 |
-| --- | --- | --- |
-| 🧠 推理线 | 多智能体识别隐性广告（Supervisor + NLP/视觉/行为 + Judge） | P2-P3 |
-| 📊 数据线 | 采集 → 脱敏 → 双人标注 → 仲裁 → 金标 → 按博主划分 | P1（当前） |
-
-> P1 里程碑：种子数据集 v1 ≥1500 条、明广/暗广/非广三元标签、Cohen's κ ≥ 0.6、三集无博主重叠。详见 [`资料/P1_数据地基与标注规范_执行指南.md`](资料/P1_数据地基与标注规范_执行指南.md)。
-
----
-
-## 推理快速开始
+## 快速开始
 
 ```bash
 # 1) 建虚拟环境（本机 Python 3.10，推荐 3.11+）
@@ -43,63 +32,11 @@ cp .env.example .env                 # 然后填入 Key
 python run_demo.py --llm
 
 # 6) 起后端服务
-uvicorn app:app --reload             # 打开 http://127.0.0.1:8000/docs
-```
-
----
-
-## 数据采集快速开始
-
-### 环境准备
-
-```bash
-# Playwright 浏览器依赖（微信爬虫需要）
-python -m playwright install chromium
-
-# 国内镜像加速
-$env:PLAYWRIGHT_DOWNLOAD_HOST="https://npmmirror.com/mirrors/playwright/"
-python -m playwright install chromium
-```
-
-### 一键全流程
-
-```bash
-# 从公众号名称列表 → 抓取 URL → 内容脱敏 → 去重 → Schema 校验
-python scripts/data/run_full_pipeline.py --mode sogou --accounts-file data/accounts.txt --output-dir data/run_outputs
-
-# 从单篇微信文章出发
-python scripts/data/run_full_pipeline.py --mode article --source "https://mp.weixin.qq.com/s/..." --output-dir data/run_outputs
-```
-
-### 分步执行
-
-```bash
-# 步骤 1：搜索公众号文章 URL
-python scripts/data/sogou_wechat_crawler.py --account "公众号名" --max-articles 50 --output data/run_outputs/urls.txt
-
-# 步骤 2：抓取内容 + 匿名化（需在 .env 中设置 ANONYMIZATION_SALT）
-python scripts/data/crawl_public_posts.py --input data/run_outputs/urls.txt --output data/run_outputs/anonymized_posts.jsonl --collector D
-
-# 步骤 3：规范化 + 去重
-python scripts/data/normalize_and_deduplicate.py data/run_outputs/anonymized_posts.jsonl data/run_outputs/anonymized_posts_dedup.jsonl
-
-# 步骤 4：Schema 校验
-python scripts/data/validate_schema.py data/run_outputs/anonymized_posts_dedup.jsonl
-```
-
----
-
-## 标注与金标构建
-
-```bash
-# 计算双人标注一致性（Cohen's κ + 混淆矩阵 + 分歧详情）
-python scripts/data/calculate_agreement.py ann_D.jsonl ann_N.jsonl
-
-# 合并双人标注 + 仲裁记录 → 金标数据集
-python scripts/data/build_gold_dataset.py ann_D.jsonl ann_N.jsonl adjudication.jsonl gold_v1.jsonl
-
-# 按 blogger_id 分组划分 train/dev/test（7:1.5:1.5，防同博主泄漏）
-python scripts/data/split_by_blogger.py gold_v1.jsonl data/splits/train_ids.txt data/splits/dev_ids.txt data/splits/test_ids.txt
+python -m uvicorn app:app --reload   # 打开 http://127.0.0.1:8000/docs
+# ↑ 用 "python -m uvicorn" 而不是直接 "uvicorn"：
+#   Windows 的 .venv\Scripts\uvicorn.exe 会把 Python 路径硬编码进去，
+#   路径含中文或 venv 被移动过时 launcher 会报 "Fatal error in launcher"。
+#   python -m uvicorn 完全绕过这个 exe，效果一样。pip/pytest 同理用 python -m pip/pytest。
 ```
 
 ### Windows PowerShell 激活（踩坑指南）
@@ -131,53 +68,97 @@ PowerShell 的激活脚本是 `Activate.ps1`（不是 `activate`）：
    supervisor / nlp / judge 等各节点的输入输出、LLM 调用、耗时与 token。
 
 ## 目录说明
-
-### 🧠 推理引擎
 | 路径 | 作用 |
 | --- | --- |
 | `impad/hello_graph.py` | 零 Key 的最小图（规则占位），验证环境与轨迹 |
 | `impad/graph.py` | 多智能体图的装配（只搭骨架，不写业务逻辑） |
 | `impad/agents/supervisor.py` | 主控调度：按输入决定派哪些专家 + 条件路由 |
 | `impad/agents/nlp_agent.py` | NLP 专家：LLM 判意图/话术，无 Key 自动降级规则 |
-| `impad/agents/vision_agent.py` | 视觉专家（占位，P2 接 OCR/图文一致性） |
+| `impad/agents/vision_agent.py` | 视觉专家：物体检测 + OCR 抠图内文字回灌关键词 + 焦点；缺依赖自动降级 |
 | `impad/agents/behavior_agent.py` | 行为专家（占位规则，P3 接 EMA+Chroma） |
 | `impad/agents/judge.py` | 加权聚合投票 + 低置信反思质询 |
-| `impad/tools/keywords.py` | 广告信号关键词清单（规则降级共用） |
-| `impad/state.py` | 图的共享状态定义（plan / agent_votes / evidence …） |
+| `impad/tools/keywords.py` | 广告信号关键词清单 + 6 维可解释特征（`compute_keyword_weights`） |
+| `impad/tools/vision.py` | YOLO11 + EasyOCR + 焦点（重依赖惰性导入，`vision_available()` 探测） |
+| `impad/state.py` | 图的共享状态定义（plan / agent_votes / keyword_weights / vision_findings …） |
 | `impad/llm.py` | 厂商无关 LLM 客户端（OpenAI 兼容端点） |
 | `impad/config.py` | 读取 `.env` 的集中配置 |
 | `app.py` | FastAPI，`POST /analyze`（返回含各专家投票） |
-| `run_demo.py` | 一键跑推理 Demo |
+| `run_demo.py` | 一键跑样本；`--image path` 带图分析 |
+| `samples/` | 固定测试帖子 + `images/` 测试图 |
+| `requirements-vision.txt` | 视觉专家的可选重依赖（不装则视觉自动降级） |
+| `tests/` | 冒烟测试 + 多智能体路由/聚合/关键词特征/视觉降级测试（全部零 Key、零重依赖） |
 
-### 📊 数据工具链（P1）
-| 路径 | 作用 |
-| --- | --- |
-| `scripts/data/run_full_pipeline.py` | 一键全流程：抓取 URL → 脱敏 → 去重 → 校验，支持单/批量公众号 |
-| `scripts/data/sogou_wechat_crawler.py` | Playwright 搜狗微信爬虫，按公众号名搜索、解析加密跳转链接 |
-| `scripts/data/crawl_wechat_account.py` | requests 版搜狗微信搜索（轻量），按公众号名检索文章 URL |
-| `scripts/data/crawl_wechat_from_article.py` | 从单篇文章 URL 推断 `__biz` 抓取该号历史文章，支持 Playwright + cookies |
-| `scripts/data/crawl_public_posts.py` | 公开内容采集 + 脱敏（SHA-256 匿名 ID、模糊化博主名），输出 JSONL |
-| `scripts/data/normalize_and_deduplicate.py` | 文本规范化（去 URL/@/#）+ SHA-256 指纹去重 |
-| `scripts/data/validate_schema.py` | Schema 校验，检查必填字段与格式合规 |
-| `scripts/data/build_gold_dataset.py` | 合并双人标注 + 仲裁 → 金标数据集 |
-| `scripts/data/split_by_blogger.py` | 按 blogger_id 分组切分 train/dev/test（7:1.5:1.5） |
-| `scripts/data/calculate_agreement.py` | Cohen's κ + 95% bootstrap CI + 混淆矩阵 + 分歧详情 |
+## 6 维可解释特征（keyword_weights）
 
-### 📖 规范与文档
-| 路径 | 作用 |
-| --- | --- |
-| `docs/data_compliance.md` | 数据合规登记：来源、条款检查、采集边界、风险评估 |
-| `docs/data_schema.md` | 数据 Schema v1.0：内容记录与标注记录字段定义 |
-| `docs/annotation_guide.md` | 标注规范 v1.0：三元判定、7 类证据编码、判定流程、边界案例 |
-| `docs/dataset_card_v1.md` | 数据集卡片：≥1500 条目标、划分策略、伦理说明 |
-| `docs/data_collection_usage.md` | `crawl_public_posts.py` 使用说明 |
-| `docs/wechat_collection_usage.md` | `crawl_wechat_account.py` 使用说明 |
-| `docs/crawler-guide.md` | Playwright 爬虫环境配置（Chromium 安装、国内镜像） |
-| `资料/P1_数据地基与标注规范_执行指南.md` | P1 四周执行路线、分工、验收检查表 |
+每次分析都会附带一份**确定性**的 6 维关键词权重向量（0~1），无需 LLM、零成本可算：
 
-### 其他
-| 路径 | 作用 |
+| 维度（英文字段） | 含义 |
 | --- | --- |
-| `samples/` | 固定测试帖子 |
-| `tests/` | 冒烟测试 + 多智能体路由/聚合测试（全部零 Key） |
-| `data/` | 原始数据(raw)、中间产物(interim)、标注(annotations)、划分(splits)、运行输出(run_outputs) |
+| `promotion_words` | 促销种草话术 |
+| `price_mentions` | 价格 / 优惠提及 |
+| `urgency_expressions` | 紧迫 / 稀缺感 |
+| `brand_mentions` | 品牌 / 商务合作 |
+| `action_words` | 行动召唤（引流下单/扫码/链接） |
+| `natural_expression` | 自然表达 / 生活分享（暗广的"外壳"，作反向信号） |
+
+用途：① Judge 聚合时多一路证据；② NLP 规则降级里当"未命中软广词但整体像带货"的兜底判据（`ad_pressure`）；③ 前端可画雷达图、论文可解释性分析。
+它出现在 `/analyze` 响应的 `keyword_weights` 字段、各专家投票与证据链里。计算逻辑见 `impad/tools/keywords.py`。
+
+## 视觉专家（可选，需装重依赖）
+
+视觉专家给帖子配图做三件事：**物体检测**（YOLO11，80 类）、**OCR 文字识别**（EasyOCR 中英文）、**加权焦点**。
+最关键的是 OCR：暗广常把广告词印在图上（"扫码领券""第二件半价"），文本专家看不到——
+视觉专家把图里的文字抠出来**回灌关键词规则**，命中即形成视觉侧证据与投票。
+
+```bash
+# 1) 装可选重依赖（约 2~3GB；首次运行自动下载 YOLO ~5MB、OCR 模型 ~100MB）
+python -m pip install -r requirements-vision.txt
+
+# 2) 带图跑多智能体图
+python run_demo.py --image samples/images/test_image.jpg
+
+# 3) API：POST /analyze 的请求体加一个可选字段
+#    {"text": "分享个好物～", "image_path": "samples/images/test_image.jpg"}
+```
+
+**不装也没关系**：`vision_agent` 探测到依赖缺失会自动投空票（`confidence=0`，Judge 忽略），
+全部现有功能与测试照常。判定逻辑 `vote_from_findings` 是纯函数，因此视觉测试零重依赖也能跑。
+> 注：为保持轻量，移植时**未搬**桌面版的标注绘图（画框图）功能——智能体只需结构化结果；
+> 将来 P5 前端要展示带框图时再单独加。
+
+## 论文对照基线（待做：块③）
+
+**现状**：主线项目里传统微调基线这块目前是零。  
+**来源**：桌面平行实现 `hidad_detect_agent-unfinished--main/text/train/` 已有完整的 ERNIE 训练管线，
+并跑出了实测结果（accuracy ≈ 90.5%，macro-F1 ≈ 0.90），可直接移植。
+
+**待做内容**：
+1. 在仓库根目录新建 `baseline/` 目录（与 `implicit-ad-agent/` 平级），内含：
+   - `train/hidden_ad_train_v2.py`：ERNIE 微调主脚本（PaddlePaddle 生态）
+   - `train/build_balanced_dataset.py`：LLM 辅助构建三类平衡数据集（P1 阶段 D 可直接用）
+   - `train/augment_hidden_ad.py`：中文数据增强（分句重排/同义词/emoji 扰动）
+   - `train/test_training_methods_v2.py`：54 组超参网格实验（early stopping/warmup/标签平滑）
+   - `train/evaluate_model.py`：P/R/F1/混淆矩阵评估
+   - `inference_service.py`：训练后模型的推理封装（未来可接进 Judge 当一票）
+   - `benchmarks/`：桌面版已跑出的两份 benchmark JSON（论文参考数据，acc≈90.5%）
+   - `requirements.txt`：`paddlepaddle + paddlenlp + sklearn + tqdm`（独立 venv，勿与主线混用）
+   - `README.md`：说明这是论文对照用、如何建环境、如何跑
+
+2. **独立虚拟环境**（必须，PaddlePaddle 与 langgraph 依赖不兼容）：
+   ```powershell
+   cd baseline
+   python -m venv .venv-baseline
+   .venv-baseline\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+   ```
+
+**时机**：等 P1 标注数据就绪后再实际训练；移植代码文件本身可提前做（搬文件 + 写 README，半天内完成）。  
+**负责人建议**：D（王一帆）主导，数据集构建脚本正是 P1 需要的工具。
+
+1.工程性论文定题！！
+2.研究型论文定题：（8/16前提交） 纲要，关键词，目录，综述，......
+人员分工
+研究型论文的要求：提出假设，证明观点，算法相关（深度学习，评估与论证模型）
+3.查阅MMM2024-2026历年论文(微信群)，尽量大创相关论文
+4.若2不行，【Flow Us息流】（微信群）论题五选一
+5.endnotes：导入论文pdf原文

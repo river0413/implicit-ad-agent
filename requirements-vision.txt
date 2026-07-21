@@ -1,0 +1,11 @@
+# ── 视觉专家的重依赖（可选，约 2~3GB）────────────────────────────────
+# 不装也能跑全部现有功能：vision_agent 会自动降级为空票。
+# 装了之后：python run_demo.py --image path/to.jpg 即可带图分析。
+# 首次运行会自动下载 YOLO 权重(~5MB) 与 EasyOCR 语言模型(~100MB)。
+#
+# 安装：先激活主 .venv，再 pip install -r requirements-vision.txt
+ultralytics>=8.3        # YOLO11 物体检测
+easyocr>=1.7            # 中英文 OCR
+opencv-python>=4.9      # 图像读写/预处理
+# torch / torchvision 会作为 ultralytics、easyocr 的依赖自动安装；
+# 如需指定 CUDA 版本，请按 https://pytorch.org 的指引单独装 torch。
