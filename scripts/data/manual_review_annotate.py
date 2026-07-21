@@ -5,15 +5,19 @@
   1. 加载 JSONL 帖子数据 + 标注指南
   2. 请求标注人 ID，按 ID + 时间分文件保存
   3. 同一标注人断点续传：检测已有标注文件，跳过已完成 post_id
-  4. 每条帖子展示标题/正文/媒体引用 → LLM 预分析 → 人工确认/修改/跳过
-  5. 逐条即时写入 JSONL，崩溃不丢数据
-  6. 输出格式符合 annotation_guide.md 定义的标注记录结构
+  4. 每条帖子展示标题/正文/媒体引用 → 可选查看图片 → LLM 预分析 → 人工确认/修改/跳过
+  5. 逐条即时写入 JSON（缩进易读格式），崩溃不丢数据
+  6. 输出合并格式：主标注字段（label/evidence) + 补充 Schema 字段
+     （image_analyses/markdown_notes/edge_case_discussion），
+     可通过 --no-supplement 仅输出主标注字段
+  7. 支持查看图片：[v] 交互式选择编号打开，--auto-view 自动弹出
 
 用法：
   python scripts/data/manual_review_annotate.py \\
     --input data/run_outputs/anonymized_posts.jsonl \\
     --guide docs/annotation_guide.md \\
     --output-dir data/annotations \\
+    --media-base data \\
     --limit 50
 
 依赖：pip install openai python-dotenv
@@ -169,31 +173,36 @@ def load_guide(path: Path) -> str:
 def find_existing_annotations(output_dir: Path, annotator_id: str) -> Tuple[Optional[Path], Set[str]]:
     """查找该标注人的已有标注文件及已完成 post_id 集合。
 
+    兼容旧版 .jsonl（单行 JSON）和新版 .json（缩进多行 JSON）。
+
     Returns:
         (latest_file_path, set_of_completed_post_ids)
         若不存在则返回 (None, empty_set)
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    existing = sorted(
-        output_dir.glob(f"{annotator_id}_*.jsonl"),
-        key=os.path.getmtime,
-        reverse=True,
-    )
-    if not existing:
+    # 同时搜索 .json 和 .jsonl 以兼容旧文件
+    candidates = list(output_dir.glob(f"{annotator_id}_*.json"))
+    candidates += list(output_dir.glob(f"{annotator_id}_*.jsonl"))
+    if not candidates:
         return None, set()
+    existing = sorted(candidates, key=os.path.getmtime, reverse=True)
 
     latest = existing[0]
     completed: Set[str] = set()
-    with latest.open("r", encoding="utf-8") as stream:
-        for line in stream:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-                completed.add(rec.get("post_id", ""))
-            except json.JSONDecodeError:
-                continue
+    raw_text = latest.read_text(encoding="utf-8")
+    decoder = json.JSONDecoder()
+    idx = 0
+    while idx < len(raw_text):
+        while idx < len(raw_text) and raw_text[idx] in " \t\n\r":
+            idx += 1
+        if idx >= len(raw_text):
+            break
+        try:
+            obj, end = decoder.raw_decode(raw_text, idx)
+            completed.add(obj.get("post_id", ""))
+            idx = end
+        except json.JSONDecodeError:
+            break
     return latest, completed
 
 
@@ -215,9 +224,9 @@ def call_llm_pre_analysis(
 
     title = post.get("title") or ""
     text = post.get("text", "")
-    # 截断过长的正文（保留前 3000 字）
-    if len(text) > 3000:
-        text = text[:3000] + "\n\n[... 正文过长已截断，完整内容请查看原始数据 ...]"
+    # 截断过长的正文（保留前 5000 字）
+    if len(text) > 5000:
+        text = text[:5000] + "\n\n[... 正文过长已截断，完整内容请查看原始数据 ...]"
 
     media_count = len(post.get("media", []))
     comment_count = len(post.get("comments", []))
@@ -320,6 +329,83 @@ def format_post_display(post: Dict[str, Any], index: int, total: int) -> str:
 {'─' * 70}"""
 
 
+def view_images(post: Dict[str, Any], media_base: Path) -> int:
+    """打开帖子的图片供查看，返回实际打开的图片数。
+
+    使用系统默认图片查看器打开，Windows 下调用 os.startfile，
+    其他平台使用 webbrowser.open。
+    支持批量打开（传入索引范围如 1-5）或逐张打开。
+    """
+    media = post.get("media", [])
+    if not media:
+        print("  (无图片)")
+        return 0
+
+    print(f"\n📷 共 {len(media)} 张图片:")
+    for i, m in enumerate(media, 1):
+        ref = m.get("ref", "?")
+        full_path = media_base / ref
+        exists = "✓" if full_path.exists() else "✗ 缺失"
+        print(f"  [{i}] {ref}  {exists}")
+
+    print("\n  输入编号打开（如 1,3,5 或 1-3），直接回车跳过，a=全部打开")
+    choice = input("  > ").strip().lower()
+
+    if not choice:
+        return 0
+
+    # 解析选择
+    indices: List[int] = []
+    if choice == "a":
+        indices = list(range(1, len(media) + 1))
+    else:
+        for part in choice.replace("，", ",").split(","):
+            part = part.strip()
+            if "-" in part:
+                try:
+                    a, b = part.split("-", 1)
+                    indices.extend(range(int(a), int(b) + 1))
+                except ValueError:
+                    continue
+            elif part.isdigit():
+                idx = int(part)
+                if 1 <= idx <= len(media):
+                    indices.append(idx)
+
+    if not indices:
+        return 0
+
+    # 去重排序
+    indices = sorted(set(indices))
+    opened = 0
+    for idx in indices:
+        ref = media[idx - 1].get("ref", "")
+        full_path = media_base / ref
+        if not full_path.exists():
+            print(f"  ⚠️ [{idx}] 文件不存在: {full_path}")
+            continue
+        try:
+            _open_file(str(full_path.resolve()))
+            opened += 1
+        except Exception as e:
+            print(f"  ⚠️ [{idx}] 打开失败: {e}")
+
+    print(f"  ✅ 已打开 {opened} 张图片")
+    return opened
+
+
+def _open_file(path: str) -> None:
+    """跨平台打开文件。"""
+    if sys.platform == "win32":
+        os.startfile(path)  # type: ignore[attr-defined]
+    elif sys.platform == "darwin":
+        import subprocess
+        subprocess.run(["open", path], check=True)
+    else:
+        import webbrowser
+        webbrowser.open(f"file://{path}")
+
+
 def format_llm_suggestion(llm_result: Dict[str, Any]) -> str:
     """格式化 LLM 预分析建议。"""
     label = llm_result.get("label", "?")
@@ -337,7 +423,9 @@ def format_llm_suggestion(llm_result: Dict[str, Any]) -> str:
         f"   证据代码: {evidence_codes}",
         f"   推理: {reasoning}",
     ]
-    if evidence:
+    if len(evidence) == 1:
+        lines.append(f"   具体证据: {evidence[0]}")
+    elif len(evidence) > 1:
         lines.append("   具体证据:")
         for i, ev in enumerate(evidence, 1):
             lines.append(f"     {i}. {ev}")
@@ -424,9 +512,17 @@ def make_annotation_record(
     evidence: List[str],
     uncertain_reason: Optional[str] = None,
     llm_suggestion: Optional[Dict[str, Any]] = None,
+    image_analyses: Optional[List[Dict[str, Any]]] = None,
+    markdown_notes: str = "",
+    edge_case_discussion: Optional[Dict[str, Any]] = None,
+    post: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """构造符合 annotation_guide.md 规范的标注记录。"""
+    """构造合并格式的标注记录：帖子原文 + 主标注字段 + 补充 Schema 字段。"""
+    now_iso = datetime.now(CST).isoformat()
     record: Dict[str, Any] = {
+        # ── 帖子原文（只读引用，便于自包含查阅） ──
+        "post": post or {},
+        # ── 主标注字段 (annotation_guide.md) ──
         "post_id": post_id,
         "annotator_id": annotator_id,
         "guide_version": "1.0",
@@ -435,7 +531,12 @@ def make_annotation_record(
         "evidence_codes": evidence_codes,
         "evidence": evidence,
         "uncertain_reason": uncertain_reason,
-        "annotated_at": datetime.now(CST).isoformat(),
+        # ── 补充 Schema 字段 (annotation_supplement_schema.md) ──
+        "image_analyses": image_analyses or [],
+        "markdown_notes": markdown_notes,
+        "edge_case_discussion": edge_case_discussion,
+        # ── 时间戳 ──
+        "annotated_at": now_iso,
     }
     if llm_suggestion:
         record["_llm_suggestion"] = {
@@ -447,11 +548,120 @@ def make_annotation_record(
     return record
 
 
+def prompt_image_analysis(post: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """交互式填写图像分析（可选）。"""
+    media = post.get("media", [])
+    if not media:
+        return []
+    print(f"\n📷 该帖子有 {len(media)} 张图片，是否逐张分析？")
+    resp = input("  输入要分析的图片编号（如 1,3,5，逗号分隔），直接回车跳过: ").strip()
+    if not resp:
+        return []
+
+    indices = []
+    for part in resp.replace("，", ",").split(","):
+        part = part.strip()
+        if part.isdigit():
+            idx = int(part)
+            if 1 <= idx <= len(media):
+                indices.append(idx)
+
+    if not indices:
+        return []
+
+    results = []
+    for img_idx in indices:
+        m = media[img_idx - 1]
+        ref = m.get("ref", "?")
+        url = m.get("source_url", "")
+        print(f"\n  ── 图片 {img_idx}: {ref} ──")
+
+        desc = input(f"  图片描述（1-2句话）: ").strip()
+        if not desc:
+            continue
+
+        ocr = input(f"  OCR/图中文字（直接回车跳过）: ").strip() or None
+
+        print(f"  视觉元素检测（y=是，其他=否）:")
+        elements = {
+            "has_logo": input(f"    品牌Logo? [y/N]: ").strip().lower() == "y",
+            "has_qr_code": input(f"    二维码? [y/N]: ").strip().lower() == "y",
+            "has_price_info": input(f"    价格/折扣信息? [y/N]: ").strip().lower() == "y",
+            "has_product_image": input(f"    产品特写/白底商品图? [y/N]: ").strip().lower() == "y",
+            "has_chart_or_table": input(f"    销量图表/对比表格? [y/N]: ").strip().lower() == "y",
+            "has_promotional_text": input(f"    图片内促销文案? [y/N]: ").strip().lower() == "y",
+            "has_contact_info": input(f"    联系方式(微信号/手机等)? [y/N]: ").strip().lower() == "y",
+        }
+
+        codes_input = input(f"  证据代码（V/A/D，逗号分隔，直接回车=无）: ").strip().upper()
+        vcodes = []
+        if codes_input:
+            vcodes = [c.strip() for c in codes_input.replace("，", ",").split(",") if c.strip() in ("V", "A", "D")]
+
+        relevance = input(f"  对标注判定的影响: ").strip()
+        quality = input(f"  图片质量（直接回车=清晰）: ").strip() or "清晰"
+
+        results.append({
+            "media_ref": ref,
+            "source_url": url or None,
+            "image_index": img_idx,
+            "analysis_method": "manual",
+            "description": desc,
+            "ocr_text": ocr,
+            "detected_elements": elements,
+            "visual_evidence_codes": vcodes,
+            "relevance_to_annotation": relevance or "待补充",
+            "image_quality_notes": quality,
+            "analyzed_at": datetime.now(CST).isoformat(),
+        })
+
+    return results
+
+
+def prompt_markdown_notes() -> str:
+    """交互式输入 Markdown 备注（可选）。"""
+    print("\n📝 Markdown 备注（判定思考/证据补充/疑虑，空行结束）:")
+    lines = []
+    while True:
+        line = input("  | ").rstrip()
+        if line == "" and (not lines or lines[-1] == ""):
+            break
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def prompt_edge_case() -> Optional[Dict[str, Any]]:
+    """交互式填写边界案例讨论（可选）。"""
+    resp = input("\n⚠️  是否标记为边界案例？[y/N]: ").strip().lower()
+    if resp != "y":
+        return None
+
+    category = input("  边界类型标签: ").strip()
+    diff = input("  难度 [easy/medium/hard，默认medium]: ").strip() or "medium"
+    alt = input("  另一种可能标签 [明广/暗广/非广/out_of_scope]: ").strip()
+    reason = input("  不确定原因: ").strip()
+    suggestion = input("  规范修订建议（直接回车跳过）: ").strip() or None
+    need_disc = input("  需要团队讨论？[y/N]: ").strip().lower() == "y"
+    tags_input = input("  讨论标签（逗号分隔）: ").strip()
+    tags = [t.strip() for t in tags_input.replace("，", ",").split(",") if t.strip()] if tags_input else []
+
+    return {
+        "is_edge_case": True,
+        "edge_case_category": category or None,
+        "difficulty": diff if diff in ("easy", "medium", "hard") else "medium",
+        "alternative_label": alt if alt in ("明广", "暗广", "非广", "out_of_scope") else None,
+        "reason_for_uncertainty": reason or None,
+        "suggested_guide_update": suggestion,
+        "needs_team_discussion": need_disc,
+        "discussion_tags": tags,
+    }
+
+
 def append_annotation(file_path: Path, record: Dict[str, Any]) -> None:
-    """追加一条标注到 JSONL 文件。"""
+    """追加一条标注到 JSON 文件（缩进易读格式）。"""
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with file_path.open("a", encoding="utf-8") as stream:
-        stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+        stream.write(json.dumps(record, ensure_ascii=False, indent=2) + "\n\n")
 
 
 def print_stats(records: List[Dict[str, Any]]) -> None:
@@ -513,6 +723,21 @@ def main() -> None:
         help="禁用 LLM 预分析，纯人工标注",
     )
     parser.add_argument(
+        "--no-supplement",
+        action="store_true",
+        help="跳过补充字段（图像分析/Markdown备注/边界讨论），仅输出主标注字段",
+    )
+    parser.add_argument(
+        "--media-base",
+        default="data",
+        help="图片本地存储根目录，用于解析 media[].ref 路径 (默认: data)",
+    )
+    parser.add_argument(
+        "--auto-view",
+        action="store_true",
+        help="每条帖子自动弹出图片查看（跳过交互式选择）",
+    )
+    parser.add_argument(
         "--annotator-id",
         default="",
         help="直接指定标注人 ID（跳过交互式询问）",
@@ -556,7 +781,7 @@ def main() -> None:
         if resp in ("n", "no"):
             # 创建新文件
             ts = datetime.now(CST).strftime("%Y%m%d_%H%M%S")
-            output_file = output_dir / f"{annotator_id}_{ts}.jsonl"
+            output_file = output_dir / f"{annotator_id}_{ts}.json"
             completed_ids = set()
             print(f"   创建新标注文件: {output_file}")
         else:
@@ -564,7 +789,7 @@ def main() -> None:
             print(f"   断点续传模式，已有 {skipped} 条标注")
     else:
         ts = datetime.now(CST).strftime("%Y%m%d_%H%M%S")
-        output_file = output_dir / f"{annotator_id}_{ts}.jsonl"
+        output_file = output_dir / f"{annotator_id}_{ts}.json"
         print(f"\n📂 新建标注文件: {output_file}")
 
     # ── 5. 打印标注指南 ──
@@ -585,10 +810,15 @@ def main() -> None:
 
     # ── 7. 逐条标注 ──
     annotated_this_session: List[Dict[str, Any]] = []
+    media_base = Path(args.media_base)
 
     try:
         for idx, post in enumerate(pending, 1):
             print(format_post_display(post, idx, total_pending))
+
+            # ── 自动查看图片 ──
+            if args.auto_view:
+                view_images(post, media_base)
 
             llm_result = None
             if not args.no_llm:
@@ -600,13 +830,17 @@ def main() -> None:
             default_label = llm_result.get("label", "非广") if llm_result else "非广"
 
             while True:
-                action = input("操作 [y=采纳建议 / n=手动修改 / s=跳过 / q=保存退出]: ").strip().lower()
+                action = input("操作 [y=采纳建议 / n=手动修改 / v=查看图片 / s=跳过 / q=保存退出]: ").strip().lower()
 
                 if action == "q":
                     print("\n⏹️  用户退出，正在保存...")
                     print_stats(annotated_this_session)
                     print(f"标注文件: {output_file}")
                     return
+
+                if action == "v":
+                    view_images(post, media_base)
+                    continue
 
                 if action == "s":
                     print(f"  ⏭️  跳过 {post.get('post_id')}\n")
@@ -623,7 +857,13 @@ def main() -> None:
                         evidence=llm_result["evidence"],
                         uncertain_reason=llm_result.get("uncertain_reason"),
                         llm_suggestion=llm_result,
+                        post=post,
                     )
+                    # ── 可选补充字段 ──
+                    if not args.no_supplement:
+                        record["image_analyses"] = prompt_image_analysis(post)
+                        record["markdown_notes"] = prompt_markdown_notes()
+                        record["edge_case_discussion"] = prompt_edge_case()
                     append_annotation(output_file, record)
                     annotated_this_session.append(record)
                     print(f"  ✅ 已记录: {llm_result['label']} (确信度: {llm_result['confidence']:.0%})\n")
@@ -651,13 +891,19 @@ def main() -> None:
                         evidence=evidence,
                         uncertain_reason=uncertain,
                         llm_suggestion=llm_result,
+                        post=post,
                     )
+                    # ── 可选补充字段 ──
+                    if not args.no_supplement:
+                        record["image_analyses"] = prompt_image_analysis(post)
+                        record["markdown_notes"] = prompt_markdown_notes()
+                        record["edge_case_discussion"] = prompt_edge_case()
                     append_annotation(output_file, record)
                     annotated_this_session.append(record)
                     print(f"  ✅ 已记录: {label} (确信度: {confidence:.0%})\n")
                     break
 
-                print("  无效操作，请输入 y / n / s / q")
+                print("  无效操作，请输入 y / n / v / s / q")
 
         # ── 8. 完成 ──
         print("\n🎉 本轮标注全部完成！")

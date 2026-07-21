@@ -1,0 +1,289 @@
+{
+  "post": {
+    "post_id": "7b238a6e425616a2111d7357",
+    "platform": "wechat_official_account",
+    "blogger_id": "20869c1e01481203e363a877",
+    "published_at": "2026-03-24T08:58:00+08:00",
+    "title": "全球首个包含全工具链的运维智能体 x OpenClaw组合登场",
+    "text": "<图片1>\n最近 OpenClaw 直接火出圈！GitHub Stars 狂飙破 30 万，全网 “养小龙虾” 热潮直接拉满。当第一批跟风安装的小伙伴转头忙着卸载时，专注技术的乐维早已跳出玩梗，把 OpenClaw 真正用在了智能运维的核心场景里。现在，LerweeClaw的全套技能它来了！\n\n<图片2>\nLerwee 运维智能体依托智能监控、根因分析等能力，打造出运维的「认知大脑」，提供精准可靠的决策支撑；OpenClaw 则是能真正落地执行的 AI 智能体，可把自然语言指令直接变成真实运维操作，成为 AI 落地的「数字之手」。二者深度融合——LerweeClaw，彻底打破工具间的协作壁垒，实现从发现问题→分析问题→解决问题的全流程自动化闭环，真正重构运维效率，解放运维人力！\n\n目前，乐维已在OpenClaw已经上线多个运维 Skill，部署 Lerwee 运维智能体 + OpenClaw ，下载配套 Skill，即可直接使用。\n\nLerwee运维智能体下载链接：https://forum.lwops.cn/download#all\n\n一、Lerwee API Skill：运维能力的基础对接桥梁\n\n场景描述：Lerwee API Skill适用于Openclaw对接Lerwee运维智能体，通过 API对接，将监控、指标、告警、CMDB 等运维数据汇聚一起，让 Openclaw 能够顺畅对接 Lerwee 运维智能体的全栈能力。\n\n技能地址：https://clawhub.ai/Lerwee/lerwee-api\n\nOpenclaw安装Lerwee-api步骤：\n\n1. 打开技能地址\n\n<图片3>\n\n2. 复制下载链接\n\n<图片4>\n\n3. 将下载链接告诉openclaw\n\n提问：\n\n下载并安装这个skills\n\nhttps://wry-manatee-359.convex.site/api/v1/download?slug=lerwee-api\n\n<图片5>\n\n安装完成会提示需要 LERWEE_SECRET\n\n<图片6>\n\n4. 获取内网系统的API Secret\n\n通过ssh连接到部署的服务器\n\n打开 /itops/nginx/html/lwjk_app/.env 在里面找到 API_SECRET_KEY\n\nAPI_SECRET_KEY就是openclaw需要的 LERWEE_SECRET\n\n<图片7>\n\n5. OpenClaw配置\n\n配置前还需要把内网系统的地址发给OpenClaw，/api/v6 这个是固定的\n\n提问：\n\nLERWEE_BASE_URL=http://192.168.3.92:8081/api/v6\nLERWEE_SECRET=18a6413dc4fe394c66345ebe501b2f26\n\n<图片8>\n\n执行测试\n\n<图片9>\n\n测试成功\n\n<图片10>\n\n回到平台校验数据\n\n<图片11>\n\n二、Lerwee Alert Inspection：设备健康的智能化巡检管家\n\n场景描述：该Skill的核心适配场景为设备健康巡检、告警审查与巡检报告生成（Markdown 格式）等，同时支持告警数据导出为 Excel与发送邮箱，全程无需人工干预，实现了巡检工作的全自动化，解决人工运维巡检耗时耗力且容易出现遗漏等问题。\n\n技能地址：（安装部署同上，略）\n\nhttps://wry-manatee-359.convex.site/api/v1/download?slug=alert-inspection\n\n示例：系统巡检。如使用alert-inspection技能，生成一份监控巡检报告，要求如下\n\n1、巡检监控类型=操作系统\n\n2、巡检结果，使用Excel格式输出\n\n3、输出的Excel内容，再通过邮件发送给xxxxxx@lwops.cn\n\n下发巡检任务指令\n\n<图片12>\n\n生成巡检报告\n\n发送巡检报告至邮箱\n\n输出报告，包括巡检概览、正常主机、异常主机与异常详情清单\n\n三、Lerwee Fault Handling：故障处理的自动化执行工具\n\n场景描述：该Skill适用于故障处理、远程主机执行脚本、服务重启、磁盘清理等各类应急与日常运维操作，其核心技术逻辑是通过Lerwee运维智能体的 run-script API 实现远程脚本执行，并通过轮询 execution-history 接口实时获取脚本执行结果，确保运维操作的可追溯、可监控。\n\n技能地址：（安装部署同上，略）\n\nhttps://wry-manatee-359.convex.site/api/v1/download?slug=fault-handling\n\n示例：\n\n磁盘告警通知：192.168.x.xx上/分区磁盘空间使用率高于90%\n\n分析告警并生成解决方案\n\n四、Lerwee Alert To Fault Handling：告警管理的全流程自动化闭环\n\n场景描述：该Skill的核心适配场景为告警自动处理。围绕告警全生命周期，打通了“告警 - 分析 - 处理 - 恢复” 的链路，将原本分散的告警监控、故障分析、脚本执行环节整合为一个有机整体，实现了从告警提醒到故障恢复的全流程自动化，打造了告警管理的闭环体系。\n\n技能地址：（安装部署同上，略）\n\nhttps://wry-manatee-359.convex.site/api/v1/download?slug=alert-to-fault-handling\n\n示例：\n\n告警提醒\n\n告警分析并生成解决方案\n\n确认“执行”解决方案\n\n执行中（自动匹配脚本）\n\n执行结果展示\n告警恢复通知<图片13>\nLerweeClaw Skills 全景图<图片14>\n四大核心Skill是LerweeClaw首期落地成果。乐维致力于打造智能运维 Skill 全景体系，规划研发资产管理、链路监控分析、虚拟化资源调度等更多细分场景 Skill，不断丰富全景体系的能力边界，推出适配各行业的专属 Skill 包，让智能运维能力覆盖更多运维场景，适配不同企业的个性化需求。<图片15>\n更多智能运维Skill将陆续上新，欢迎关注乐维社区抢先体验：<图片16>\nhttps://forum.lwops.cn/download#LerweeClawSkills<图片17>\n扫码加入Lerwee运维智能体×OpenClaw探索群，探讨更多LerweeClawSkill应用场景<图片18>\n若加群失败，请加乐乐微信（lerwee）<图片19>\n最新LerweeClaw场景演示：<图片20><图片21><图片22><图片23><图片24>",
+    "media": [
+      {
+        "ref": "media/7b238a6e425616a2111d7357/00.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_jpg/BpFYwrSatCib0GYAZhWphZ90OYJ14cZVU3icbB0vsaU7UicYM5x07bicyibt393oRPrk9yFAuE2FBKvNp3OdqZnpnAXACEIWfC18uLj8WyiaSxuU0/0?wx_fmt=jpeg",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/01.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCicRaZ8GR3kS5pp4z5CoibsBsXFug6LCz1XVcUibcWa1FNRY7ttcuF94gxYk28iaapEYXdt5ROxd0JibZ7Dz7lQWIUgeKiasRz5smG7E/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=0",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/02.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCibW9kr7geppjWFNIEM52Rtepo1chA3Sc4NOD3VDzxUKDGbooa7qdVsaiaJFEajqM54nyYVNlLLc5fRaInMbnSmCXhrgPKhvU20Q/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=1",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/03.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCibJ37iatKQBVweg7baicEDpMgrUMwBxEf0xwWqVmVokLaY6EnLXbcxia1pboIQsuZ589WbuaszsziakLaG0wQAPNkkabG7lLQrCXcI/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=2",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/04.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC8sB7xF05NGbbeDgR5Z9X5CfXFHzN7IG7OqESJnGVbgekmKHEpqLA6G5T9EiaKdmia8zic8hAe7F45KljWJg5TdXTQSRZtqPlT7zs/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=3",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/05.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9kF2m76lh6W6mtWMZcdJoPc6xAnVA3qGqu6K8Biag4N50lAMqCNm8fHcxKTA54IM9bfCJYCNbacTaPtyr4sZnPeBmqZvBNRs2o/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=4",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/06.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC957dyIh8FAZ5YSyy9yNdvTGNWIS3ERpXypu94StnVwDgU3gmbKqHsTbGRYI8UV5C5sL3p261vnlnPDVhhatNW4Udml2hQYicvg/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=5",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/07.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCiconYV4MiaWibq8Q4deFCM2lcXuxZqWibd58sibUY33gwicgTmE6BK4SZe9dFibTicbhIwPQLHkR9vciaJwyZS5YPNHLickYD0wzzUSz3kY/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=6",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/08.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatC9CKeicHNGMx3O7on06YyJriaicRn8ribcicVuAibldIsH51rdFbTp5fz7QzFZCpiaeWvwsVUGNFpqZiaV7ibPaibXCkD0fib4ITKbUSrn2DQ/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=7",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/09.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCibTezeVMZRSqKNTWYa22ZmQza6amdzd5hyGsjwk3Xpy4MAjEicwJU3VExQWjuveZCuicRK4icJGaKANbjcQteZuc0zdGSVO02HAgM/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=8",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/10.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCicAGoYibWchAWcWkp6wAlUVY1qIWCzAcU5sHHiczbicVkk5ev2eycIeEBNF1sWs0hialCiaCf5te6LtElT8eibficbgxf8LU3t4YdDq7Y/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=9",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/11.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCicM5c4Z2599cyibmiaCMcY5BDbnZdcBtoknHJL6bYB2hQIQy01GRGPU98tiaREfjBgyuLYgYDQO5WhDfpuemptpblkQHZibia47QQ6c/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=10",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/12.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCicvwaQVbcGZiamJygSUQUknIL0Zaz8r6UiczAEpe1W4y8F9IzCpTTOCmBuzkEK5y8mkX3iaK3icAmRvpJ3tk2iaURNAB9wzVnHMqicx4/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=11",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/13.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCicgJoTg9IZKrJibicic7YFicsYepyibG3UHevUFXLSUBibTrAiaQ9KBZHFfjB1JXUPNaJcsrQyhhFswOeXse39Ghr6iaDcbAF0PpvawMzw/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=12",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/14.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCicLWicHDetPxlsDsw80yTQo0npvic7FWQx6FldoAaZm3tEpk0ehKOozkMobGpL1xs6chANuxOxeemokiacicVQRjicFwdKgZTuXoWPc/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=13",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/15.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCibjI3LLtKTjjv9Jd17QZeGcO1eJusias3Hg7Nz8GCttQicK28r3s4K5Fwo6B37F5a0PsOw0yKYgBYgA1VEiaTUMC4us50YMbpA0Sw/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=14",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/16.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCiccyKR8ibvlRf1Nj5BmxvL17VJrpHAvlW3CMamCthJVbr0XyNONXHgngfyyianLWx93EgEpHhrsq35hrAuHGuIiadWRLUBKaCRgms/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=15",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/17.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatCibfkgn4MVebN0licgs0nynhq9xRAmynA2m0ZLHBtJ47luNU9C1dSE6PeuJjXiciciaXBHiaOdCIcW8B7f9yGdXXzd3v6o4w9XbWF17Y/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=16",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/18.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9zxUEaBdObicE4NNGibP5DicWUXIoOb32gLSl2GOtPkkib94iag4tGQ0pWV2kzLwtrktRjwDTRhovicgeRH7q1OsKrgBVichYdYxovRs/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=17",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/19.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9ylSGTQV7wQPCror9tk7icNSUIVNJ19V3SNO1WmU9rojKZdAp4f4VlFq54dYQfa2YWbIlLbF9mDrK0g6hBYsCUUoOib1iajeCvVc/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=18",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/20.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9pM5pNaCPoXxaHiaZMYmXqUXVichEouHG3Dw8F9ZuE5e37ryZZeXKIHcgtmkKPLAD30wlNHicAMQVEF9SsffLn194eIC71fsQhVk/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=19",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/21.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9b8xFCx7JCSzv1eFzLGD91rFzgiavV8W88hkAGP3MDjAEO3LCTI8TCPQOHFRd4wCsGaqibicZtiauOqA0dbbribAx1QlN8sKM9bECs/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=20",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/22.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9XTnkEOaaicFLSXWmSVZgDGicZQ9sSfVUXd8LaOSmRfRT8UcdDpS3zOiadfKGkRicIgE2BhZ1GjPGibd2oDYILdb69XLY7745r2ebk/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=21",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/23.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9neXumvr2m9VEjAwiaowyCgGz8gOAotamzYwnGjRPC5t0VasYbkV3nayKW4VB0DNzUUR9jOucib8v2r3oNfzxmswtZq04zQabibQ/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=22",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/24.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCibhtT9bAMGo2Gg2icd5X3n3Ll4lP1pmMQtk6mpacm1NicPtiabLMZpyZL2CPcMiaicu0yjKaZia2XoR2CywIFofLcZVKXnuyWibojIhnM/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=23",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/25.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCicea00opHveFHEOC0l8XtCC9Qql4sHQjDCia11Jsqiczo8YRNoiaFsV8zWJByZScnIN5gY4RH3eUxyyYKxjHkibY117icaMO8xyWKuQ/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=24",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/26.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC84x3HAJ7iaezpUDgE3eoHCLrcs1BJP2SQuia6wQcwicmsUxiaDiaJ0icA1Jd5GdZfjD413mQaofibq7sa4MziaKbAk1XMic9JoasHOWoibc/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=25",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/27.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatC9NibCq8uPCibibBia7W45ibLeGp8DNZP0beiaoMxcvOd5libyL45Nemtp75CeWcLfq1CXOz8EoAVDx4rIr3HicEHOcb2x4EUjZoXwFE3Q/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=26",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/28.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_jpg/BpFYwrSatCiciaXQLV7TPexhXVdhx0vsSR3aAmATjYIfhnj4keQEspxE95WrlR9r6Cs3J2EkXjGiaaVw6HPibArRUVg1B77YwNEIQicByAygPAWM/640?wx_fmt=jpeg&amp;from=appmsg&amp;watermark=1#imgIndex=27",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/29.jpg",
+        "source_url": "https://mmbiz.qpic.cn/sz_mmbiz_png/BpFYwrSatCib39LKJAFQcib3zlJJ3CBZgcPZM3crl8gMoyI5CGILI5lQwvKLEXj5ambZfP9PpnFu7gdHCy5CatzXXiaVHraJ2jAGYCwIOriaf38/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=28",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/30.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/BpFYwrSatC8dChiaYdY0mUWOccicSic0npTLYBnUmaZRWRQZxy7tibnMO5Z8TcaGx3Rv55lF8zkuMgZGSeI95picCeJI9wWnk6RLHMKekEFnXelw/640?wx_fmt=png&amp;from=appmsg&amp;watermark=1#imgIndex=29",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/31.jpg",
+        "source_url": "http://mmbiz.qpic.cn/mmbiz_png/RM9Y4OF1SX5ASLKxja0ObTV9vdZwcsdFADfftKnMeb7DS85FhSs8ZmKb0jf39U7IPNUicDt2yeHBsUSUj1ogiaWw/0?wx_fmt=png",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/32.jpg",
+        "source_url": "https://mmbiz.qpic.cn/mmbiz_png/RM9Y4OF1SX5ASLKxja0ObTV9vdZwcsdFADfftKnMeb7DS85FhSs8ZmKb0jf39U7IPNUicDt2yeHBsUSUj1ogiaWw/300?wx_fmt=png&amp;wxfrom=18",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/33.gif",
+        "source_url": "https://res.wx.qq.com/mmbizappmsg/zh_CN/images/pic/pic_blank.gif",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/34.jpg",
+        "source_url": "https://res.wx.qq.com/op_res/opqv3ix6k9E4e64ZzO7uIqE3ZblwIojfmt7u70m59yS1ylFK-hTu6Ra8V_LaWQJ1P4OlUJPdXLfVBtrm3TwRrw",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/35.jpg",
+        "source_url": "https://res.wx.qq.com/op_res/RCdSzC74aDD_QnWHvT8sNtESWCvezsiPOk6PEvubsj8wv5t3hSJndZcCOdHhYDBlk8xXexSC1CZccFnFO5JCHg",
+        "caption": null,
+        "is_content": true
+      },
+      {
+        "ref": "media/7b238a6e425616a2111d7357/36.jpg",
+        "source_url": "https://res.wx.qq.com/op_res/RCdSzC74aDD_QnWHvT8sNnXUvwtSaR2y5wHybXLJy_bhOTBTw97S11whc3dq9C0qRKv2tXjGNhrEXV4-6jYgIQ",
+        "caption": null,
+        "is_content": true
+      }
+    ],
+    "comments": [],
+    "blogger_history_refs": [
+      "77443ada34ac52634843b1b2",
+      "f8c023234af3c4e920f5d39d",
+      "765075ded8d665a25ec54f9c",
+      "a690fa299bf54282db63ea06",
+      "6af53bbbbc49d661262e5d9a",
+      "cf344615f3f8b6c43eae5f17",
+      "4f1cb28e4f85685ccabdc1e0"
+    ],
+    "_collected": {
+      "source_url": "https://mp.weixin.qq.com/s?src=11&timestamp=1784556985&ver=6854&signature=SDay7AVcs*d1S*5J8dWnKYa1oOuYROwIB2DYyLp1MMcMGsw2gjMcbXj4R4L50gNfpQqxGBO-ljserHRpxd16n6u8bYYiQwBwuYl6kdMK03Ef42GojO*kAMeQoEHWCaxt&new=1",
+      "source_ref_hash": "7b238a6e425616a2111d7357e174cf4f",
+      "collected_at": "2026-07-20T23:46:08+08:00",
+      "collector": "D",
+      "terms_checked_at": null,
+      "llm_mode": "html_direct",
+      "llm_needs_review": true,
+      "llm_confidence": 0.57,
+      "llm_notes": "[块1] 本文仅处理用户提供的12张图片，其余图片（如三、四部分中的截图）视为装饰/界面元素已忽略。标题、作者、日期等微信界面元素已删除。图片无独立标注文字，caption均为null。; [块2] HTML中无<title>，标题留空；提供的12张图片URL未在HTML中出现，按段落顺序依次插入；图片标注文字均缺失；HTML中的其他图片（索引23-29）视为装饰/图标，未标记。; [块3] 提供的HTML片段仅包含微信界面UI元素（标题、留言、表情选择等），未提取到文章正文段落。13张图片URL中前9张（index 25~33）可能为内容图，后4张（index 34~37）为微信系统图标/占位图，已按URL来源区分。因无正文，未插入图片标记。"
+    }
+  },
+  "post_id": "7b238a6e425616a2111d7357",
+  "annotator_id": "D",
+  "guide_version": "1.0",
+  "label": "暗广",
+  "confidence": 0.95,
+  "evidence_codes": [
+    "C",
+    "P",
+    "A",
+    "V"
+  ],
+  "evidence": [
+    "C: 全文围绕乐维（Lerwee）的Lerwee运维智能体与OpenClaw组合及其四个核心Skill展开，明确推广该商业产品。",
+    "P: 使用“火出圈”“狂飙破30万”“彻底打破工具间的协作壁垒”“真正重构运维效率，解放运维人力”等夸张赞美和宣传话术。",
+    "A: 提供直接下载链接（https://forum.lwops.cn/download#all）、多个技能地址、安装配置步骤，并引导加入社区群（扫码、加微信），具有明确的转化意图。",
+    "V: 包含大量产品截图、操作界面图片（图片1-24），展示产品界面和功能，强化商业宣传。"
+  ],
+  "uncertain_reason": null,
+  "image_analyses": [],
+  "markdown_notes": "图片29为交流群二维码截图，含有推广要素",
+  "edge_case_discussion": null,
+  "annotated_at": "2026-07-21T12:19:27.684253+08:00",
+  "_llm_suggestion": {
+    "label": "暗广",
+    "confidence": 0.95,
+    "evidence_codes": [
+      "C",
+      "P",
+      "A",
+      "V"
+    ],
+    "reasoning": "帖子无明示商业标识（D），但全文围绕单一商业产品（C）展开，并包含劝服话术（P）、转化动作（A）和视觉证据（V），满足暗广判定条件（有C且P/A/V中≥2且有A）。"
+  }
+}
+
