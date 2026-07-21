@@ -32,3 +32,4 @@ Thumbs.db
 
 #html
 *.html
+/data/run_outputs/tmp_1784556667/

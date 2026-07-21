@@ -122,6 +122,13 @@ def batch_crawl_per_account(
         crawled_urls = _load_crawled_urls(anonymized)
         if crawled_urls:
             print(f"🔁 续传模式：检测到 {len(crawled_urls)} 条已抓取记录，将跳过这些 URL")
+    else:
+        # 全新抓取：清理上次残留的临时过滤文件
+        for f in tmp.glob("*.filtered.txt"):
+            try:
+                f.unlink()
+            except Exception:
+                pass
 
     # 预扫描：构建任务列表（续传时过滤已抓 URL）
     tasks = []
@@ -275,8 +282,11 @@ def _filter_url_file(url_file: Path, crawled_urls: set) -> tuple:
     if not lines:
         return (None, skipped, total)
 
-    # 写入临时过滤文件
-    filtered_path = url_file.with_suffix(".filtered.txt")
+    # 写入临时过滤文件（如果输入已是 filtered，覆盖而非叠加后缀）
+    if ".filtered" in url_file.name:
+        filtered_path = url_file
+    else:
+        filtered_path = url_file.with_suffix(".filtered.txt")
     filtered_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return (filtered_path, skipped, total)
 
@@ -325,8 +335,10 @@ def main():
 
     if args.resume_from:
         tmp = Path(args.resume_from)
-        # 优先检测批量分文件 urls_*.txt
-        batch_files = sorted(tmp.glob("urls_*.txt"))
+        # 优先检测批量分文件 urls_*.txt（排除 .filtered.txt 残留）
+        batch_files = sorted(
+            f for f in tmp.glob("urls_*.txt") if ".filtered" not in f.name
+        )
         if batch_files:
             per_account_url_files = batch_files
             is_batch_resume = True
@@ -348,8 +360,10 @@ def main():
                 [d for d in outdir.iterdir() if d.is_dir() and d.name.startswith("tmp_")],
                 key=lambda d: d.stat().st_mtime, reverse=True)
             for td in tmp_dirs:
-                # 优先检测批量分文件
-                batch_files = sorted(td.glob("urls_*.txt"))
+                # 优先检测批量分文件（排除 .filtered.txt 残留）
+                batch_files = sorted(
+                    f for f in td.glob("urls_*.txt") if ".filtered" not in f.name
+                )
                 if batch_files:
                     tmp = td
                     per_account_url_files = batch_files
