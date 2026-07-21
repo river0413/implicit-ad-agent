@@ -1,0 +1,633 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/implicit-ad/data_schema_v1.json",
+  "title": "隐性广告识别 P1 数据 Schema v1.0",
+  "description": "标准帖子输入、独立主标注记录和可选标注补充记录定义。内容记录不包含最终人工标签。",
+  "$ref": "#/$defs/content_record",
+  "$defs": {
+    "content_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "post_id",
+        "platform",
+        "source_type",
+        "blogger_id",
+        "text",
+        "media",
+        "provenance",
+        "privacy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "description": "Schema 版本。"
+        },
+        "post_id": {
+          "type": "string",
+          "pattern": "^post_[A-Za-z0-9_-]+$",
+          "description": "去标识化且全局唯一的帖子 ID。"
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "wechat_official_account",
+            "weibo",
+            "xiaohongshu",
+            "douyin",
+            "synthetic",
+            "other"
+          ],
+          "description": "内容来源平台。"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "public_dataset",
+            "manual_public_collection",
+            "authorized_export",
+            "synthetic"
+          ],
+          "description": "数据取得方式；模拟数据必须填 synthetic。"
+        },
+        "blogger_id": {
+          "type": "string",
+          "pattern": "^blogger_[A-Za-z0-9_-]+$",
+          "description": "经项目私有盐处理的稳定哈希/匿名 ID。"
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "发布时间；未知时为 null。"
+        },
+        "text": {
+          "type": "string",
+          "description": "经脱敏后的正文；图像为主的帖子可为空字符串。"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/media_item"
+          },
+          "description": "媒体元数据，不在 Git 中提交未审查的原始媒体。"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/comment_item"
+          },
+          "description": "可获得时的匿名化评论。"
+        },
+        "blogger_history_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "用于主题漂移判断的去标识化历史帖子引用。"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance",
+          "description": "来源和采集审计信息。"
+        },
+        "privacy": {
+          "$ref": "#/$defs/privacy",
+          "description": "脱敏与敏感信息检查结果。"
+        }
+      }
+    },
+    "media_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_id",
+        "type",
+        "ref",
+        "sha256",
+        "phash",
+        "ocr_text"
+      ],
+      "properties": {
+        "media_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video",
+            "audio",
+            "link",
+            "other"
+          ]
+        },
+        "ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "媒体本地逻辑引用；图像补充记录的 media_ref 与此对应。"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "phash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ocr_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "comment_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comment_id",
+        "author_id",
+        "text",
+        "like_count",
+        "is_pinned"
+      ],
+      "properties": {
+        "comment_id": {
+          "type": "string"
+        },
+        "author_id": {
+          "type": "string",
+          "description": "匿名评论者 ID。"
+        },
+        "text": {
+          "type": "string"
+        },
+        "like_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_pinned": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref_hash",
+        "collected_at",
+        "collector",
+        "terms_checked_at"
+      ],
+      "properties": {
+        "source_ref_hash": {
+          "type": "string"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "collector": {
+          "type": "string"
+        },
+        "terms_checked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymized",
+        "contains_sensitive_data"
+      ],
+      "properties": {
+        "anonymized": {
+          "type": "boolean"
+        },
+        "contains_sensitive_data": {
+          "type": "boolean"
+        }
+      }
+    },
+    "annotation_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_id",
+        "annotator_id",
+        "guide_version",
+        "label",
+        "confidence",
+        "evidence_codes",
+        "evidence",
+        "uncertain_reason",
+        "annotated_at"
+      ],
+      "properties": {
+        "post_id": {
+          "type": "string",
+          "pattern": "^post_[A-Za-z0-9_-]+$"
+        },
+        "annotator_id": {
+          "type": "string",
+          "description": "正式双标时使用 D 或 N；本模拟集使用 synthetic_reference。"
+        },
+        "guide_version": {
+          "const": "1.0"
+        },
+        "label": {
+          "type": "string",
+          "enum": [
+            "明广",
+            "暗广",
+            "非广",
+            "out_of_scope",
+            "uncertain"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_codes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "D",
+              "C",
+              "P",
+              "A",
+              "V",
+              "B",
+              "M"
+            ]
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "uncertain_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "annotated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "annotation_supplement_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_id",
+        "annotator_id",
+        "supplement_version",
+        "image_analyses",
+        "markdown_notes",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "post_id": {
+          "type": "string",
+          "pattern": "^post_[A-Za-z0-9_-]+$"
+        },
+        "annotator_id": {
+          "type": "string",
+          "description": "与主标注记录关联的标注人 ID。"
+        },
+        "supplement_version": {
+          "const": "1.0"
+        },
+        "image_analyses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/image_analysis"
+          }
+        },
+        "markdown_notes": {
+          "type": "string",
+          "description": "标注者 Markdown 格式补充备注。"
+        },
+        "edge_case_discussion": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/edge_case_discussion"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "image_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_ref",
+        "image_index",
+        "analysis_method",
+        "description",
+        "detected_elements",
+        "visual_evidence_codes",
+        "relevance_to_annotation",
+        "analyzed_at"
+      ],
+      "properties": {
+        "media_ref": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string"
+        },
+        "image_index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "analysis_method": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "llm_vision",
+            "ocr_auto",
+            "hybrid"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ocr_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "detected_elements": {
+          "$ref": "#/$defs/detected_elements"
+        },
+        "visual_evidence_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "V",
+              "A",
+              "D"
+            ]
+          }
+        },
+        "relevance_to_annotation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "image_quality_notes": {
+          "type": "string"
+        },
+        "analyzed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "detected_elements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "has_logo",
+        "has_qr_code",
+        "has_price_info",
+        "has_product_image",
+        "has_chart_or_table",
+        "has_promotional_text",
+        "has_contact_info"
+      ],
+      "properties": {
+        "has_logo": {
+          "type": "boolean"
+        },
+        "has_qr_code": {
+          "type": "boolean"
+        },
+        "has_price_info": {
+          "type": "boolean"
+        },
+        "has_product_image": {
+          "type": "boolean"
+        },
+        "has_chart_or_table": {
+          "type": "boolean"
+        },
+        "has_promotional_text": {
+          "type": "boolean"
+        },
+        "has_contact_info": {
+          "type": "boolean"
+        }
+      }
+    },
+    "edge_case_discussion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "is_edge_case"
+      ],
+      "properties": {
+        "is_edge_case": {
+          "type": "boolean"
+        },
+        "edge_case_category": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ]
+        },
+        "alternative_label": {
+          "type": "string",
+          "enum": [
+            "明广",
+            "暗广",
+            "非广",
+            "out_of_scope"
+          ]
+        },
+        "reason_for_uncertainty": {
+          "type": "string"
+        },
+        "suggested_guide_update": {
+          "type": "string"
+        },
+        "needs_team_discussion": {
+          "type": "boolean"
+        },
+        "discussion_tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x_field_reference": [
+    {
+      "field": "post_id",
+      "required": true,
+      "purpose": "内容和标注记录的唯一关联键。"
+    },
+    {
+      "field": "blogger_id",
+      "required": true,
+      "purpose": "按博主分组切分、防泄漏；不得存真实昵称。"
+    },
+    {
+      "field": "media/comments/blogger_history_refs",
+      "required": false,
+      "purpose": "支撑视觉、评论异常和主题漂移证据。"
+    },
+    {
+      "field": "provenance",
+      "required": true,
+      "purpose": "确保来源、采集时间、责任人和条款检查可追溯。"
+    },
+    {
+      "field": "privacy",
+      "required": true,
+      "purpose": "保证数据已脱敏并标记敏感风险。"
+    },
+    {
+      "field": "annotation_record",
+      "required": "separate file",
+      "purpose": "保存独立标注，不与模型输入内容混放。"
+    },
+    {
+      "field": "annotation_supplement_record",
+      "required": "optional separate file",
+      "purpose": "按 post_id + annotator_id 关联图像分析、Markdown 备注、边界讨论与审计时间。"
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "1.0",
+      "post_id": "post_explicit_sponsor",
+      "platform": "synthetic",
+      "source_type": "synthetic",
+      "blogger_id": "blogger_style_001",
+      "published_at": "2026-07-20T10:00:00+08:00",
+      "text": "本期穿搭内容由晴岚服饰赞助，下面展示三套新品搭配和购买入口。",
+      "media": [
+        {
+          "media_id": "media_001",
+          "type": "image",
+          "sha256": null,
+          "phash": null,
+          "ocr_text": "晴岚服饰新品合作",
+          "ref": "media/post_explicit_sponsor/01.jpg"
+        }
+      ],
+      "comments": [],
+      "blogger_history_refs": [],
+      "provenance": {
+        "source_ref_hash": "synthetic_case_post_explicit_sponsor",
+        "collected_at": "2026-07-21T09:00:00+08:00",
+        "collector": "P1_team",
+        "terms_checked_at": "2026-07-21"
+      },
+      "privacy": {
+        "anonymized": true,
+        "contains_sensitive_data": false
+      }
+    },
+    {
+      "post_id": "post_explicit_sponsor",
+      "annotator_id": "synthetic_reference",
+      "guide_version": "1.0",
+      "label": "明广",
+      "confidence": 0.9,
+      "evidence_codes": [
+        "D",
+        "C"
+      ],
+      "evidence": [
+        "正文明确写明品牌赞助",
+        "内容围绕单一服饰品牌展示"
+      ],
+      "uncertain_reason": null,
+      "annotated_at": "2026-07-21T09:00:00+08:00"
+    },
+    {
+      "post_id": "post_explicit_sponsor",
+      "annotator_id": "synthetic_reference",
+      "supplement_version": "1.0",
+      "image_analyses": [
+        {
+          "media_ref": "media/post_explicit_sponsor/01.jpg",
+          "image_index": 1,
+          "analysis_method": "manual",
+          "description": "合成图片 1：晴岚服饰新品合作。",
+          "ocr_text": "晴岚服饰新品合作",
+          "detected_elements": {
+            "has_logo": true,
+            "has_qr_code": false,
+            "has_price_info": false,
+            "has_product_image": true,
+            "has_chart_or_table": false,
+            "has_promotional_text": true,
+            "has_contact_info": false
+          },
+          "visual_evidence_codes": [
+            "D"
+          ],
+          "relevance_to_annotation": "该图片支持主标注中的 D 类视觉/转化证据。",
+          "image_quality_notes": "合成示例图像；文字信息清晰可读",
+          "analyzed_at": "2026-07-21T09:00:00+08:00"
+        }
+      ],
+      "markdown_notes": "## 判定思考\n\n参考标签为 **明广**，置信度为 0.90。正文：本期穿搭内容由晴岚服饰赞助，下面展示三套新品搭配和购买入口。\n\n## 证据补充\n\n- 主证据代码：D, C\n- 主要依据：正文明确写明品牌赞助；内容围绕单一服饰品牌展示\n\n## 图像补充\n\n- 图片 1：该图片支持主标注中的 D 类视觉/转化证据。\n\n## 疑虑\n\n无明显疑虑；该记录仅用于合成数据的格式和流程测试。\n",
+      "edge_case_discussion": null,
+      "created_at": "2026-07-21T09:00:00+08:00",
+      "updated_at": "2026-07-21T09:00:00+08:00"
+    }
+  ]
+}
