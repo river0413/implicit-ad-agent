@@ -123,43 +123,36 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
 
     兼容两种格式：
       - 标准 JSONL（每行一个完整 JSON 对象）
-      - 美化打印的 JSONL（每个对象跨多行，以缩进格式存储）
+      - 美化打印拼接的 JSON（每个对象跨多行，以 }\\n\\n{ 分隔）
+    使用 json.JSONDecoder.raw_decode() 从字符流中逐个提取 JSON 对象。
     """
-    raw_text = path.read_text(encoding="utf-8")
-    # 尝试标准 JSONL 逐行解析
-    records = []
+    raw_text = path.read_text(encoding="utf-8-sig")
+    records: List[Dict[str, Any]] = []
     decoder = json.JSONDecoder()
     idx = 0
-    raw_text = raw_text.strip()
-    while idx < len(raw_text):
-        # 跳过空白
-        while idx < len(raw_text) and raw_text[idx] in " \t\n\r":
+    content_len = len(raw_text)
+    while idx < content_len:
+        # 跳过空白字符
+        while idx < content_len and raw_text[idx] in " \t\n\r":
             idx += 1
-        if idx >= len(raw_text):
+        if idx >= content_len:
             break
         try:
             obj, end = decoder.raw_decode(raw_text, idx)
             records.append(obj)
             idx = end
-        except json.JSONDecodeError:
-            # 如果流式解析失败，尝试逐行解析作为后备
-            records = _load_standard_jsonl(path)
-            break
-    return records
-
-
-def _load_standard_jsonl(path: Path) -> List[Dict[str, Any]]:
-    """标准 JSONL 逐行解析（后备方案）。"""
-    records = []
-    with path.open("r", encoding="utf-8") as stream:
-        for line in stream:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                records.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
+        except json.JSONDecodeError as e:
+            context = raw_text[max(0, idx - 40):idx + 80]
+            print(
+                f"⚠️ JSON 解析失败，位置 {idx}: {e.msg}。"
+                f"上下文: ...{context!r}...",
+                file=sys.stderr,
+            )
+            # 尝试跳到下一个可能的 JSON 起始位置
+            next_brace = raw_text.find("{", idx + 1)
+            if next_brace == -1:
+                break
+            idx = next_brace
     return records
 
 
@@ -189,20 +182,25 @@ def find_existing_annotations(output_dir: Path, annotator_id: str) -> Tuple[Opti
 
     latest = existing[0]
     completed: Set[str] = set()
-    raw_text = latest.read_text(encoding="utf-8")
+    raw_text = latest.read_text(encoding="utf-8-sig")
     decoder = json.JSONDecoder()
     idx = 0
-    while idx < len(raw_text):
-        while idx < len(raw_text) and raw_text[idx] in " \t\n\r":
+    content_len = len(raw_text)
+    while idx < content_len:
+        while idx < content_len and raw_text[idx] in " \t\n\r":
             idx += 1
-        if idx >= len(raw_text):
+        if idx >= content_len:
             break
         try:
             obj, end = decoder.raw_decode(raw_text, idx)
             completed.add(obj.get("post_id", ""))
             idx = end
         except json.JSONDecodeError:
-            break
+            # 跳过无法解析的位置
+            next_brace = raw_text.find("{", idx + 1)
+            if next_brace == -1:
+                break
+            idx = next_brace
     return latest, completed
 
 
@@ -282,6 +280,11 @@ def call_llm_pre_analysis(
     result.setdefault("evidence", [])
     result.setdefault("reasoning", "")
     result.setdefault("uncertain_reason", None)
+
+    # LLM 可能返回单字符串而非数组，统一标准化为列表
+    if isinstance(result.get("evidence"), str):
+        raw = result["evidence"].strip()
+        result["evidence"] = [raw] if raw else []
 
     # 校验 label
     if result["label"] not in VALID_LABELS:
@@ -414,6 +417,9 @@ def format_llm_suggestion(llm_result: Dict[str, Any]) -> str:
     evidence_codes = ", ".join(llm_result.get("evidence_codes", [])) or "(无)"
     reasoning = llm_result.get("reasoning", "")
     evidence = llm_result.get("evidence", [])
+    # LLM 可能返回单字符串或列表，统一标准化为列表
+    if isinstance(evidence, str):
+        evidence = [evidence] if evidence.strip() else []
     uncertain = llm_result.get("uncertain_reason")
 
     lines = [

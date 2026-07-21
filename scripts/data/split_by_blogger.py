@@ -7,12 +7,25 @@ from typing import Dict, Iterable, List, Tuple
 
 
 def load_jsonl(path: Path) -> Iterable[Dict]:
-    with path.open("r", encoding="utf-8") as stream:
-        for line in stream:
-            line = line.strip()
-            if not line:
-                continue
-            yield json.loads(line)
+    """加载 JSONL 文件，兼容标准 JSONL 和美化打印拼接格式。"""
+    raw_text = path.read_text(encoding="utf-8-sig")
+    decoder = json.JSONDecoder()
+    idx = 0
+    content_len = len(raw_text)
+    while idx < content_len:
+        while idx < content_len and raw_text[idx] in " \t\n\r":
+            idx += 1
+        if idx >= content_len:
+            break
+        try:
+            obj, end = decoder.raw_decode(raw_text, idx)
+            yield obj
+            idx = end
+        except json.JSONDecodeError:
+            next_brace = raw_text.find("{", idx + 1)
+            if next_brace == -1:
+                break
+            idx = next_brace
 
 
 def write_ids(post_ids: List[str], path: Path) -> None:

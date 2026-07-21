@@ -11,15 +11,31 @@ LABEL_INDEX = {label: idx for idx, label in enumerate(LABELS)}
 
 
 def load_annotations(path: Path) -> Dict[str, str]:
-    """从 JSONL 加载标注，返回 {post_id: label}。"""
+    """从 JSONL 加载标注，返回 {post_id: label}。
+
+    兼容两种格式：
+      - 标准 JSONL（每行一个完整 JSON 对象）
+      - 美化打印拼接的 JSON（每个对象跨多行）
+    """
     data: Dict[str, str] = {}
-    with path.open("r", encoding="utf-8") as stream:
-        for line in stream:
-            line = line.strip()
-            if not line:
-                continue
-            record = json.loads(line)
-            data[record["post_id"]] = record["label"]
+    raw_text = path.read_text(encoding="utf-8-sig")
+    decoder = json.JSONDecoder()
+    idx = 0
+    content_len = len(raw_text)
+    while idx < content_len:
+        while idx < content_len and raw_text[idx] in " \t\n\r":
+            idx += 1
+        if idx >= content_len:
+            break
+        try:
+            obj, end = decoder.raw_decode(raw_text, idx)
+            data[obj["post_id"]] = obj["label"]
+            idx = end
+        except json.JSONDecodeError:
+            next_brace = raw_text.find("{", idx + 1)
+            if next_brace == -1:
+                break
+            idx = next_brace
     return data
 
 
