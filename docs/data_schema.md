@@ -1,12 +1,18 @@
-# 数据 Schema（v1.0，已废弃）
+# 数据 Schema（v1.1）
 
-> ⚠️ **本文档为旧版 v1.0，已不再使用。**  
-> 新版 v2.0 schema 定义及设计讨论请参见：[`资料/Schema设计讨论与字段取舍.md`](../资料/Schema设计讨论与字段取舍.md)
+> ⚠️ **本文档描述当前活跃版本 v1.1。**  
+> 权威 JSON Schema 文件：[`data/schema/data_schema_v1_1.json`](../data/schema/data_schema_v1_1.json)  
+> v1.0 存档：[`data/schema/data_schema_v1.json`](../data/schema/data_schema_v1.json)  
+> Schema 设计讨论：[`资料/Schema设计讨论与字段取舍.md`](../资料/Schema设计讨论与字段取舍.md)
 
 ## 1. 版本与文件说明
 
-- `schema_version`: 当前版本号，例如 `1.0`
+- `schema_version`: 当前版本号为 `1.1`
 - 内容数据与标注数据分离，标注文件只通过 `post_id` 关联。
+- v1.1 变更（相对 v1.0）：
+  - 新增 `bilibili` 平台枚举
+  - 新增可选字段 `title`（帖子/文章标题）
+  - 新增可选字段 `content_group_id`（跨平台转载内容组 ID，防泄漏）
 
 ## 2. 内容记录字段
 

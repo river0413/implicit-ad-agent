@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/implicit-ad/data_schema_v1_1.json",
+  "title": "隐性广告识别 P1 数据 Schema v1.1",
+  "description": "在 v1.0 基础上增加 bilibili 平台、可选 title、可选 content_group_id。内容记录不包含最终人工标签。",
+  "$ref": "#/$defs/content_record",
+  "$defs": {
+    "content_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "post_id",
+        "platform",
+        "source_type",
+        "blogger_id",
+        "text",
+        "media",
+        "provenance",
+        "privacy"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "1.1",
+          "description": "Schema 版本。"
+        },
+        "post_id": {
+          "type": "string",
+          "pattern": "^post_[A-Za-z0-9_-]+$",
+          "description": "去标识化且全局唯一的帖子 ID。"
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "wechat_official_account",
+            "weibo",
+            "xiaohongshu",
+            "douyin",
+            "bilibili",
+            "synthetic",
+            "other"
+          ],
+          "description": "内容来源平台。v1.1 新增 bilibili。"
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "public_dataset",
+            "manual_public_collection",
+            "authorized_export",
+            "synthetic"
+          ],
+          "description": "数据取得方式；模拟数据必须填 synthetic。"
+        },
+        "blogger_id": {
+          "type": "string",
+          "pattern": "^blogger_[A-Za-z0-9_-]+$",
+          "description": "经项目私有盐处理的稳定哈希/匿名 ID。"
+        },
+        "published_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "发布时间；未知时为 null。"
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "v1.1 新增可选字段：帖子/文章标题，不可获取时为 null。"
+        },
+        "content_group_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "v1.1 新增可选字段：跨平台转载内容组 ID，用于防泄漏划分。同一内容组的帖子不得跨 train/dev/test。无已知转载关系时为 null。"
+        },
+        "text": {
+          "type": "string",
+          "description": "经脱敏后的正文；图像为主的帖子可为空字符串。"
+        },
+        "media": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/media_item"
+          },
+          "description": "媒体元数据，不在 Git 中提交未审查的原始媒体。"
+        },
+        "comments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/comment_item"
+          },
+          "description": "可获得时的匿名化评论。"
+        },
+        "blogger_history_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "用于主题漂移判断的去标识化历史帖子引用。"
+        },
+        "provenance": {
+          "$ref": "#/$defs/provenance",
+          "description": "来源和采集审计信息。"
+        },
+        "privacy": {
+          "$ref": "#/$defs/privacy",
+          "description": "脱敏与敏感信息检查结果。"
+        }
+      }
+    },
+    "media_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_id",
+        "type",
+        "ref",
+        "sha256",
+        "phash",
+        "ocr_text"
+      ],
+      "properties": {
+        "media_id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "image",
+            "video",
+            "audio",
+            "link",
+            "other"
+          ]
+        },
+        "ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "媒体本地逻辑引用；图像补充记录的 media_ref 与此对应。"
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "phash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ocr_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "comment_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "comment_id",
+        "author_id",
+        "text",
+        "like_count",
+        "is_pinned"
+      ],
+      "properties": {
+        "comment_id": {
+          "type": "string"
+        },
+        "author_id": {
+          "type": "string",
+          "description": "匿名评论者 ID。"
+        },
+        "text": {
+          "type": "string"
+        },
+        "like_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "is_pinned": {
+          "type": "boolean"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_ref_hash",
+        "collected_at",
+        "collector",
+        "terms_checked_at"
+      ],
+      "properties": {
+        "source_ref_hash": {
+          "type": "string"
+        },
+        "collected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "collector": {
+          "type": "string"
+        },
+        "terms_checked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymized",
+        "contains_sensitive_data"
+      ],
+      "properties": {
+        "anonymized": {
+          "type": "boolean"
+        },
+        "contains_sensitive_data": {
+          "type": "boolean"
+        }
+      }
+    },
+    "annotation_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "post_id",
+        "annotator_id",
+        "guide_version",
+        "label",
+        "confidence",
+        "evidence_codes",
+        "evidence",
+        "uncertain_reason",
+        "annotated_at"
+      ],
+      "properties": {
+        "post_id": {
+          "type": "string",
+          "pattern": "^post_[A-Za-z0-9_-]+$"
+        },
+        "annotator_id": {
+          "type": "string"
+        },
+        "guide_version": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string",
+          "enum": [
+            "明广",
+            "暗广",
+            "非广",
+            "out_of_scope",
+            "uncertain"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "D", "C", "P", "A", "V", "B", "M"
+            ]
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "自由文本证据描述。"
+        },
+        "uncertain_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "annotated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

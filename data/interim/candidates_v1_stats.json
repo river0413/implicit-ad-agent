@@ -1,0 +1,19 @@
+{
+  "total_loaded": 1206,
+  "migrated": {
+    "success": 512,
+    "degraded": 694,
+    "rejected": 0
+  },
+  "field_missing": {
+    "content_group_id": 1206,
+    "comments": 1206,
+    "title": 7,
+    "published_at": 21
+  },
+  "media_missing": {
+    "sha256": 28384,
+    "phash": 28384,
+    "ocr_text": 26940
+  }
+}

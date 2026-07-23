@@ -1,0 +1,70 @@
+{
+  "report_generated_at": "2026-07-23T09:18:35.931514+08:00",
+  "summary": {
+    "total_records": 1206,
+    "success": 512,
+    "degraded": 694,
+    "degraded_reason": "llm_needs_review=true — LLM 抽取置信度不能当标签置信度"
+  },
+  "platform_distribution": {
+    "wechat_official_account": 1206
+  },
+  "source_type_distribution": {
+    "manual_public_collection": 1206
+  },
+  "field_completeness": {
+    "comments": {
+      "missing": 1206,
+      "missing_pct": 100.0,
+      "present": 0,
+      "present_pct": 0.0
+    },
+    "content_group_id": {
+      "missing": 1206,
+      "missing_pct": 100.0,
+      "present": 0,
+      "present_pct": 0.0
+    },
+    "published_at": {
+      "missing": 21,
+      "missing_pct": 1.7,
+      "present": 1185,
+      "present_pct": 98.3
+    },
+    "title": {
+      "missing": 7,
+      "missing_pct": 0.6,
+      "present": 1199,
+      "present_pct": 99.4
+    }
+  },
+  "media_quality": {
+    "total_media_items": 28384,
+    "sha256_missing": 6,
+    "sha256_missing_pct": 0.0,
+    "phash_missing": 6,
+    "phash_missing_pct": 0.0,
+    "ocr_text_missing": 26940,
+    "ocr_text_missing_pct": 94.9
+  },
+  "provenance_audit": {
+    "terms_checked": 0,
+    "terms_unchecked": 1206,
+    "warning": "terms_checked_at 为空的记录不得进入可公开金标"
+  },
+  "llm_review_queue": {
+    "needs_review_count": 694,
+    "action_required": "建立复核队列，不要把 LLM 抽取置信度当标签置信度"
+  },
+  "text_statistics": {
+    "avg_length": 2121.0,
+    "min_length": 10,
+    "max_length": 7647,
+    "empty_texts": 0
+  },
+  "media_statistics": {
+    "avg_media_per_post": 23.5,
+    "max_media_per_post": 91,
+    "no_media_posts": 21
+  }
+}
